@@ -28,6 +28,10 @@ static unsigned char background[1280 * 480] ATTRIBUTE_ALIGN (32);
 static unsigned char bannerunc[banner_WIDTH * banner_HEIGHT * 2] ATTRIBUTE_ALIGN (32);
 static void unpack (void);
 
+unsigned short SaveDevice = 1;
+int use_SD;
+int mega = 0;
+
 /****************************************************************************
 * plotpixel
 ****************************************************************************/
@@ -272,48 +276,6 @@ WaitButtonA (void)
 
 
 /****************************************************************************
-* Memory Card or SD Card
-****************************************************************************/
-int
-ChooseMemCard (void)
-{
-  char titles[5][20] = { {"Where do you want\0"}, {"to save progress?\0"}, {"\0"}, {"A - SD Card\0"}, {"B - Memory Card \0"} };
-  int i;
-  int quit = 0;
-
-  while (PAD_ButtonsHeld (0))
-    VIDEO_WaitVSync ();
-
-  DrawScreen ();
-
-  fgcolour = COLOR_WHITE;
-  bgcolour = BMPANE;
-
-  for (i = 0; i < 5; i++)
-    gprint ((640 - (strlen (titles[i]) * 16)) >> 1, 192 + (i * 32), titles[i],
-	    TXT_DOUBLE);
-
-  ShowScreen ();
-
-  while (!quit)
-    {
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
-	quit = 2;
-
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_B)
-	quit = 1;
-    }
-
-  while (PAD_ButtonsHeld (0))
-    VIDEO_WaitVSync ();
-
-  if (quit == 1)
-    return 0;
-
-  return 1;
-}
-
-/****************************************************************************
 * ActionScreen
 ****************************************************************************/
 void
@@ -397,221 +359,368 @@ unpack (void)
 }
 
 /****************************************************************************
-* loadnewgame
+* draw_menu
 ****************************************************************************/
-int
-loadnewgame (void)
+char menutitle[60] = { "" };
+int menu = 0;
+
+static void draw_menu(char items[][22], int maxitems, int selected)//(  int currsel )
 {
-  char titles[3][20] = { {"Load new game?\0"}, {"A - Yes\0"}, {"B - No \0"} };
-  int i;
+   int i;
+   int j;
+// int j = 158;
+   if (mega == 1)  j = 158; 
+   else j = 225;
+// char inverse[34];
+   int n;
+   char msg[] = "version 0.1 unofficial";
+   n = strlen (msg);
+
+
+   DrawScreen ();
+   
+   for( i = 0; i < maxitems; i++ )
+   {
+      if ( i == selected )
+      {
+         setfgcolour (BMPANE);
+         setbgcolour (INVTEXT);
+//	memset(inverse, 32, 34);
+//	inverse[32] = 0;
+//	memcpy(inverse + 6, items[i], strlen(items[i]));
+//	gprint( 64, j, inverse, TXT_DOUBLE);
+        gprint( ( 640 - ( strlen(items[i]) << 4 )) >> 1, j, items[i], TXT_DOUBLE);
+      }
+      else
+      {
+         setfgcolour (COLOR_WHITE);
+         setbgcolour (BMPANE);
+         gprint( ( 640 - ( strlen(items[i]) << 4 )) >> 1, j, items[i], TXT_DOUBLE); 
+      }
+      j += 32;
+   }
+   
+   
+   setfgcolour (COLOR_WHITE);
+   setbgcolour (INVTEXT);//COLOR_BLACK);
+   gprint ((640 - (n * 16)) >> 1, 432, msg, TXT_DOUBLE);
+   
+   
+   ShowScreen();
+}
+
+
+/****************************************************************************
+* do_menu
+****************************************************************************/
+int DoMenu (char items[][22], int maxitems)
+{
+  int redraw = 1;
   int quit = 0;
+  int ret = 0;
+  u16 joy;
 
-  while (PAD_ButtonsHeld (0))
-    VIDEO_WaitVSync ();
-
-  DrawScreen ();
-
-  fgcolour = COLOR_WHITE;
-  bgcolour = BMPANE;
-
-  for (i = 0; i < 3; i++)
-    gprint ((640 - (strlen (titles[i]) * 16)) >> 1, 232 + (i * 32), titles[i],
-	    TXT_DOUBLE);
-
-  ShowScreen ();
-
-  while (!quit)
+  while (quit == 0)
+  {
+    if (redraw)
     {
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
-	quit = 2;
-
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_B)
-	quit = 1;
+      draw_menu (&items[0], maxitems, menu);
+      redraw = 0;
     }
 
-  while (PAD_ButtonsHeld (0))
-    VIDEO_WaitVSync ();
+    joy = PAD_ButtonsDown(0);
 
-  if (quit == 1)
+    if (joy & PAD_BUTTON_UP)
+    {
+      redraw = 1;
+      menu--;
+      if (menu < 0) menu = maxitems - 1;
+    }
+
+    if (joy & PAD_BUTTON_DOWN)
+    {
+      redraw = 1;
+      menu++;
+      if (menu == maxitems) menu = 0;
+    }
+
+    if (joy & PAD_BUTTON_A)// || (joy & PAD_BUTTON_RIGHT))
+    { 
+      quit = 1;
+      ret = menu;
+    }
+
+    if (joy & PAD_BUTTON_B)// || (joy & PAD_BUTTON_LEFT))
+    {
+      quit = 1;
+      ret = -1;
+    }
+  }
+  return ret;
+}
+
+
+int credits()
+{
     return 0;
-
-  return 1;
 }
+/****************************************************************************
+* Options menu
+****************************************************************************/
+int optionmenu()
+{
+  int prevmenu = menu;
+  int quit = 0;
+  int ret;
+  mega = 1;
+  char buf[22];
+  int count = 8;
+  static char items[8][22] = {
+    { "Region:           USA" },
+    { "Save Device:  SD Card" },
+    { "SFX Volume:       1.0" },
+    { "MP3 Volume:       1.0" }, 
+    { "Low Gain:         1.0" }, 
+    { "Mid Gain:         1.0" },
+    { "High Gain:        1.0" },
+    { "Return to previous" }
+    
+  };
+  static float opts[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
-#define MAXOPTS 8
-static char options[8][22] = {  "Load New Game       ", 
-				"Return to Game      ",
-				"Region           USA",
-				"SFX Volume       1.0",
-				"(CDDA Volume)    1.0", 
-				"Low Gain         1.0", 
-				"Mid Gain         1.0",
-				"High Gain        1.0" };
-				
-static float opts[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+
+  menu = 0;
+
+  while (quit == 0)
+  {
+    if (neogeo_region == 0) sprintf(items[0], "Region:         JAPAN");
+      else if (neogeo_region == 1) sprintf(items[0], "Region:           USA");
+      else sprintf(items[0], "Region:        EUROPE");
+
+    if (SaveDevice == 1) sprintf(items[1], "Save Device:  SD Card");
+    else sprintf(items[1], "Save Device: MEM Card");
+
+
+    sprintf(items[2],"SFX Volume       %1.1f",opts[0]);
+    sprintf(items[3],"MP3 Volume       %1.1f",opts[1]);
+    sprintf(items[4],"Low Gain         %1.1f",opts[2]);
+    sprintf(items[5],"Mid Gain         %1.1f",opts[3]);
+    sprintf(items[6],"High Gain        %1.1f",opts[4]);
+    
+    ret = DoMenu (&items[0], count);
+    switch (ret)
+    {
+      case 0:
+         neogeo_region++;
+         if ( neogeo_region > 2 ) neogeo_region = 0;
+        break;
+      case 1:
+        SaveDevice ^= 1;
+        break;
+      case -1:
+      case 7:
+         mega = 0;
+         quit = 1;
+         break;
+      default:
+          opts[menu-2] += 0.1f;
+          if ( opts[menu-2] > 2.0f ) opts[menu-2] = 1.0f;
+          strcpy(buf, items[menu]);
+          buf[17]=0;
+          sprintf(items[menu],"%s%1.1f", buf, opts[menu-2]);
+         break;
+    }
+  }
+  mixer_set( opts[0], opts[1], opts[2], opts[3], opts[4]);
+  mega = 0;
+  menu = prevmenu;
+  return 0;
+}
 
 /****************************************************************************
-* draw_options
-****************************************************************************/
-static void draw_options(  int currsel )
+ * Load menu
+ *
+ ****************************************************************************/
+
+static u8 load_menu = 0;
+
+int loadmenu ()
 {
-	int i;
-	int j = 158;
-	char inverse[34];
-		
-	DrawScreen ();	
-	
-	for( i = 0; i < MAXOPTS; i++ )
-	{
-		if ( i == currsel )
-		{
-			setfgcolour (BMPANE);
-			setbgcolour (INVTEXT);
-			memset(inverse, 32, 34);
-			inverse[32] = 0;
-			memcpy(inverse + 6, options[i], strlen(options[i]));
-			gprint( 64, j, inverse, TXT_DOUBLE);
-			
-		}
-		else
-		{
-			setfgcolour (COLOR_WHITE);
-			setbgcolour (BMPANE);
-			gprint( ( 640 - ( strlen(options[i]) << 4 )) >> 1  ,
-				j, options[i], TXT_DOUBLE);
-		}
-		j += 32;
-	}
-	
-	ShowScreen();
+  int prevmenu = menu;
+  int ret,count;
+  int quit = 0;
+#ifdef HW_RVL
+  count = 4;
+  char item[4][22] = {
+    {"Load from SD"},
+    {"Load from USB"},
+    {"Load from DVD"},
+    {"Stop DVD Motor"},
+    {"Return to previous"}
+  };
+#else
+  count = 4;
+  char item[4][22] = {
+    {"Load from SD"},
+    {"Load from DVD"},
+    {"Stop DVD Motor"},
+    {"Return to previous"}
+  };
+#endif
+
+  menu = load_menu;
+  
+  while (quit == 0)
+  {
+    ret = DoMenu (&item[0], count);
+    switch (ret)
+    {
+#ifdef HW_RVL
+      case 3: break;         // Load from DVD
+      case 4: break;         // Stop DVD
+      case -1:               // Button B - Exit
+      case 5:
+        quit = 1;
+        break;
+#else
+      case 1:                // Load from DVD
+        load_menu = menu;
+        use_SD = 0;
+        return 1;// quit = 1;
+        break;
+      case 2:                // Stop DVD
+        InfoScreen((char *) "Stopping DVD drive...");
+        dvd_motor_off();
+        menu = load_menu;
+        break;
+      case -1:               // Button B - Exit
+      case 3:
+        quit = 1;
+        break;
+#endif
+      /*** Load from FAT device ***/
+      default:
+        load_menu = menu;
+        use_SD = 1;
+        return 1;// quit = 1;
+        break;
+    }
+  }
+
+  menu = prevmenu;
+  return 0;
 }
 
 /****************************************************************************
-* load_options
-****************************************************************************/
-int load_options( void )
+ * Main Menu
+ *
+ ****************************************************************************/
+//extern int frameticker;
+//int gamepaused = 0;
+  
+int load_mainmenu()
 {
-	int currsel = 0;
-	int quit = 0;
-	int redraw = 1;
-	u16 joy;
-	int ret = 0;
-	char buf[22];
-	signed char x,y;
- AUDIO_StopDMA();	
-	while ( !quit )
-	{
-		if ( redraw )
-		{
-			draw_options( currsel );
-			redraw = 0;
-		}
-		
-		joy = PAD_ButtonsDown(0);
-		x = PAD_StickX(0);
-		y = PAD_StickY(0);
-		
-		if ( x > 70 )
-			joy |= PAD_BUTTON_RIGHT;
-		else
-			if ( x < -70 )
-				joy |= PAD_BUTTON_LEFT;
-		
-		if ( y > 70 )
-			joy |= PAD_BUTTON_UP;
-		else
-			if ( y < -70 )
-				joy |= PAD_BUTTON_DOWN;
-		
-		if ( joy & PAD_BUTTON_DOWN )
-		{
-			currsel++;
-			if ( currsel >= MAXOPTS )
-				currsel = 0;
-			
-			redraw = 1;
-		}
-		
-		if ( joy & PAD_BUTTON_UP )
-		{
-			currsel--;
-			if ( currsel < 0 )
-				currsel = 0;
-			
-			redraw = 1;
-		}
-		
-		if ( joy & PAD_BUTTON_A )
-		{
-			switch ( currsel )
-			{
-				case 0:	/*** Load new game ***/
-					ret = quit = 1;
-					break;
-				
-				case 1: /*** Return to game ***/
-					ret = 0;
-					quit = 1;
-					break;
-			
-				case 2: /*** Region ***/
-					neogeo_region++;
-					if ( neogeo_region > 2 )
-						neogeo_region = 0;
-					switch ( neogeo_region )
-					{
-						case 0: strcpy(options[2], "Region         JAPAN");
-							break;
-						
-						case 1: strcpy(options[2], "Region           USA");
-							break;
-						
-						default:
-							strcpy(options[2], "Region        EUROPE");
-							break;
-					}
-					break;
-					
-				default:
-					opts[currsel-3] += 0.1f;
-					if ( opts[currsel-3] >= 2.0f )
-						opts[currsel-3] = 2.0f;
-					
-					strcpy(buf, options[currsel]);
-					buf[17]=0;
-					sprintf(options[currsel],"%s%1.1f", buf, opts[currsel-3]);
-					break;
-			}
-			
-			redraw = 1;
-		}
-		
-		if ( joy & PAD_BUTTON_B )
-		{
-			if ( currsel > 2 )
-			{
-				opts[currsel-3] -= 0.1f;
-				if ( opts[currsel-3] < 0.0f )
-					opts[currsel-3] = 0.0f;
-				
-				strcpy(buf, options[currsel]);
-				buf[17]=0;
-				sprintf(options[currsel],"%s%1.1f", buf, opts[currsel-3]);
-				
-				redraw = 1;
-			}
-		}
-	}
-	
-	/*** Update before we go ***/
-	mixer_set( opts[0], opts[1], opts[2], opts[3], opts[4]);
-	
-	/*** Clear joy buffer ***/
-	while ( PAD_ButtonsHeld(0) )
-		VIDEO_WaitVSync();
- AUDIO_StartDMA();	
-	return ret;
+  s8 ret;
+  u8 quit = 0;
+  menu = 0;
+#ifdef HW_RVL
+  u8 count = 6;
+  char items[6][22] =
+#else
+  u8 count = 5;
+  char items[5][22] =
+#endif
+  {
+    {"Play Game"},
+    {"Hard Reset"},
+    {"Load New Game"},
+    {"Emulator Options"},
+#ifdef HW_RVL
+    {"Return to Loader"},
+#endif
+    {"System Reboot"}
+  };
+
+
+  // Switch to menu default rendering mode (auto detect)
+  VIDEO_Configure (vmode);
+  VIDEO_ClearFrameBuffer(vmode, xfb[whichfb], COLOR_BLACK);
+  VIDEO_Flush();
+  VIDEO_WaitVSync();
+  VIDEO_WaitVSync();
+
+
+
+  while (quit == 0)
+  {
+    ret = DoMenu (&items[0], count);
+
+    switch (ret)
+    {
+      case -1:
+      case  0:
+	ret = 0;
+	quit = 1;
+        break;
+
+      case 1:
+        neogeo_reset();
+        YM2610_sh_reset();
+        ret = 0;
+        quit = 1;
+        break;
+
+      case 2:
+        quit = loadmenu();
+        break;  
+      case 3:
+        optionmenu();
+        break;
+      case 4: 
+        VIDEO_ClearFrameBuffer(vmode, xfb[whichfb], COLOR_BLACK);
+        VIDEO_Flush();
+        VIDEO_WaitVSync();
+#ifdef HW_RVL
+        DI_Close();
+        break;
+
+      case 5:
+        VIDEO_ClearFrameBuffer(vmode, xfb[whichfb], COLOR_BLACK);
+        VIDEO_Flush();
+        VIDEO_WaitVSync();
+        DI_Close();
+        SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
+#else
+        SYS_ResetSystem(SYS_HOTRESET,0,0);
+#endif
+        break;
+    }
+  }
+
+  // Remove any still held buttons 
+  while(PAD_ButtonsHeld(0)) PAD_ScanPads();
+#ifdef HW_RVL
+  while(WPAD_ButtonsHeld(0)) WPAD_ScanPads();
+#endif
+
+
+#ifndef HW_RVL
+  // Stop the DVD from causing clicks while playing 
+//  uselessinquiry ();
+#endif
+  while (neogeo_get_memorycard() == 0) {
+     neogeo_set_memorycard();
+     if (neogeo_get_memorycard() == 0)  
+       ActionScreen((char *) "Please insert save device");
+  }
+
+
+  return ret;
 }
+
+
+
+
 
 /****************************************************************************
 * bannerscreen

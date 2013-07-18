@@ -2,7 +2,23 @@
 *   NeoCD Redux 0.1
 *   NeoGeo CD Emulator
 *   Copyright (C) 2007 softdev
+*
+*   This program is free software; you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation; either version 2 of the License, or
+*   (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*
+*   You should have received a copy of the GNU General Public License along
+*   with this program; if not, write to the Free Software Foundation, Inc.,
+*   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ****************************************************************************/
+
+/*** NeoCD/SDL CDaudio - modified for MP3 playback ***/
 
 //-- Include files -----------------------------------------------------------
 #include <stdio.h>
@@ -43,7 +59,7 @@ void cdda_shutdown(void);
 void cdda_loop_check(void);
 int cdda_get_disk_info(void);
 
-static FILE *mp3file;
+static GENFILE mp3file = 0;
 
 /*** libmad structures ***/
 static struct mad_stream madStream;
@@ -55,11 +71,12 @@ static unsigned char *OutBufferEnd;
 static unsigned int FrameCounter;
 
 /*** mp3 buffers ***/
+#if use_SD
+#define MAD_INPUT_BUFFER (0x8000)
+#else
 #define MAD_INPUT_BUFFER (2*MAD_OUTPUT_BUFFER)
+#endif
 #define MAD_OUTPUT_BUFFER (1024*4)
-//#define MAD_INPUT_BUFFER (0x2000)
-//#define MAD_OUTPUT_BUFFER (MAD_INPUT_BUFFER * 4)
-
 static unsigned char madInBuffer[MAD_INPUT_BUFFER + MAD_BUFFER_GUARD];
 static unsigned char madOutBuffer[MAD_INPUT_BUFFER];
 
@@ -76,7 +93,7 @@ static int mp3end = 0;
 int cdda_init(void)
 {
   if ( mp3file )
-    fclose(mp3file);
+    GEN_fclose(mp3file);
 
   mp3file = 0;
   mp3_init();
@@ -101,12 +118,12 @@ int cdda_play(int track)
     return 1;
 
   if (mp3file)
-    fclose(mp3file);
+    GEN_fclose(mp3file);
 
-  sprintf(Path, "%smp3/Track%02d.mp3", cdpath, track);
+  sprintf(Path, "%smp3/track%02d.mp3", cdpath, track);
   MAD_Init();
 
-  mp3file = fopen(Path, (char *) "rb");
+  mp3file = GEN_fopen(Path, (char *) "rb");
   if (mp3file)
     {
       mp3status = MP3PLAYING;
@@ -124,7 +141,6 @@ int cdda_play(int track)
   cdda_playing = 1;
   cdda_track_end = 2000000;
   mp3end = 0;
-
   return 1;
 }
 
@@ -202,15 +218,15 @@ static int mp3_init(void)
 
   for (i = 1; i < 60; i++)
     {
-      sprintf(Path, "%smp3/Track%02d.mp3", cdpath, i);
-      mp3file = fopen(Path, (char *) "rb");
+      sprintf(Path, "%smp3/track%02d.mp3", cdpath, i);
+      mp3file = GEN_fopen(Path, (char *) "rb");
       if (mp3file)
         {
           if (!cdda_min_track)
             cdda_min_track = i;
 
           cdda_max_track = i;
-          fclose(mp3file);
+          GEN_fclose(mp3file);
         }
     }
 
@@ -244,7 +260,7 @@ int mp3_decoder(int len, char *outbuffer)
     {
       FrameCounter = 0;
       while (mp3sample_rate == 0)
-        bread = DecodeNextFrame(4);             /*** Get a few bytes to see how much is really needed ***/
+        bread = DecodeNextFrame(4);		/*** Get a few bytes to see how much is really needed ***/
 
       /*** Now setup the samplerate values ***/
       ratio = (double) mp3sample_rate / (double) 48000.0;
@@ -255,7 +271,7 @@ int mp3_decoder(int len, char *outbuffer)
 
   bread = DecodeNextFrame(readlen);
   if (bread == 0) { }
-
+  
   src = (int *) madOutBuffer;
   dst = (int *) outbuffer;
   for (j = 0; j < 1600; j++)
@@ -277,7 +293,7 @@ static int mp3_read(char *buffer, int len)
   if (mp3file == 0)
     return 0;
 
-  ret = fread(buffer, 1, len, mp3file);
+  ret = GEN_fread(buffer, 1, len, mp3file);
 
   if (ret <= 0)
     {
@@ -299,6 +315,7 @@ static void MAD_Destroy(void)
 
 static void MAD_Init(void)
 {
+
   static int madinited = 0;
 
   if (madinited)
@@ -318,13 +335,14 @@ static void MAD_Init(void)
   madSamples = 0;
   madinited = 1;
   mp3sample_rate = 0;
+
 }
 
 static int MAD_DecodeFrame(void)
 {
   size_t ReadSize, madRemaining;
-  char *ReadStart = NULL;
-  char *GuardPtr = NULL;
+  unsigned char *ReadStart = NULL;
+  unsigned char *GuardPtr = NULL;
   if ((madStream.buffer == NULL) || (madStream.error == MAD_ERROR_BUFLEN))
     {
 
@@ -333,19 +351,19 @@ static int MAD_DecodeFrame(void)
         {
           madRemaining = madStream.bufend - madStream.next_frame;
           memmove(madInBuffer, madStream.next_frame, madRemaining);
-          ReadStart = (char *) (madInBuffer + madRemaining);
+          ReadStart = (unsigned char *) (madInBuffer + madRemaining);
           ReadSize = MAD_INPUT_BUFFER - madRemaining;
         }
 
       else
         {
           ReadSize = MAD_INPUT_BUFFER;
-          ReadStart = (char *) madInBuffer;
+          ReadStart = (unsigned char *) madInBuffer;
           madRemaining = 0;
         }
       /*** Read from buffer ***/
-      ReadSize &= ~0x1f;        /*** For DVD must be 32byte aligned ***/
-      ReadSize = mp3_read(ReadStart, ReadSize);
+      ReadSize &= ~0x1f;	/*** For DVD must be 32byte aligned ***/
+      ReadSize = mp3_read((char *)ReadStart, ReadSize);
       if (ReadSize == 0)
         {
           /*** End of file ***/
@@ -363,7 +381,7 @@ static int MAD_DecodeFrame(void)
       if (MAD_RECOVERABLE(madStream.error))
         {
           if (madStream.error != MAD_ERROR_LOSTSYNC
-              || madStream.this_frame != (unsigned char *) GuardPtr)
+              || madStream.this_frame != GuardPtr)
             {
               return -1;
             }
@@ -383,7 +401,6 @@ static int MAD_DecodeFrame(void)
   mad_synth_frame(&madSynth, &madFrame);
 
   FrameCounter++;
-
   return 0;
 }
 
@@ -394,7 +411,7 @@ static int DecodeNextFrame(int samples)
   OutputPtr = (unsigned char *) madOutBuffer;
   OutBufferEnd = OutputPtr + samples;
 
-  p = (short *) madOutBuffer;
+  p = (signed short *) madOutBuffer;
   memset(&madOutBuffer, 0, MAD_OUTPUT_BUFFER);
 
   while (OutputPtr != OutBufferEnd)
@@ -425,5 +442,5 @@ static int DecodeNextFrame(int samples)
       if (madSamples == madSynth.pcm.length)
         needframe = 1;
     }
-  return OutputPtr - madOutBuffer;                /*** Signal end ***/
+  return OutputPtr - madOutBuffer;		  /*** Signal end ***/
 }

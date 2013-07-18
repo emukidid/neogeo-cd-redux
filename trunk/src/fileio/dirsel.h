@@ -8,6 +8,9 @@
 #define __NEODIRSEL__
 
 extern char basedir[1024];
-int SD_Mount( void );
+extern char dirbuffer[0x10000];
+extern char scratchdir[1024];
+
+extern void DirSelector (void);
 
 #endif

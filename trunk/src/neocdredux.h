@@ -33,6 +33,7 @@ typedef unsigned int Uint32;
 #include <gccore.h>
 #include "m68k.h"
 #include "z80intrf.h"
+#include "fileio.h"
 #include "memory.h"
 #include "cpuintf.h"
 #include "cdrom.h"
@@ -50,7 +51,10 @@ typedef unsigned int Uint32;
 #include "gcaudio.h"
 #include "mcard.h"
 #include "gui.h"
+#include "iso9660.h"
 #include "dirsel.h"
+#include "dvdfileio.h"
+#include "sdfileio.h"
 
 /*** Functions ***/
 void neogeo_swab(const void *src1, const void *src2, int isize);
@@ -65,6 +69,7 @@ void neogeo_exit(void);
 void neogeo_exit_cdplayer(void);
 void neogeo_new_game(void);
 void neogeo_trace(void);
+void neogeo_reset(void);
 
 /*** Globals ***/
 extern unsigned char *neogeo_rom_memory;
@@ -75,6 +80,7 @@ extern unsigned char *neogeo_spr_memory;
 extern unsigned char *neogeo_pcm_memory;
 extern unsigned char neogeo_memorycard[8192];
 extern unsigned short SaveDevice;
+extern int use_SD;
 
 extern char neogeo_game_vectors[0x100];
 extern char neogeo_region;

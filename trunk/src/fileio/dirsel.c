@@ -4,18 +4,19 @@
 * As there is no 'ROM' to speak of, use the directory as the starting point
 ****************************************************************************/
 
-#include "sdfileio.h"
 #include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "neocdredux.h"
 
 #define PAGE_SIZE 8
 
 char basedir[1024];
-static char scratchdir[1024];
+char scratchdir[1024];
 char dirbuffer[0x10000] ATTRIBUTE_ALIGN (32);
+
 
 /****************************************************************************
 * DrawDirSelector
@@ -67,7 +68,7 @@ DrawDirSelector (int maxfile, int menupos, int currsel)
 * B == Parent directory
 * X == Set directory
 ****************************************************************************/
-static void
+void
 DirSelector (void)
 {
   int *p = (int *) dirbuffer;
@@ -77,6 +78,11 @@ DirSelector (void)
   int menupos = 0;
   int redraw = 1;
   unsigned short joy;
+#ifdef HW_RVL
+  u32 wpad;
+  
+#endif
+
   int quit = 0;
 
   maxfile = p[0];
@@ -120,11 +126,34 @@ DirSelector (void)
           redraw = 1;
         }
 
+	  if (joy & PAD_TRIGGER_L)
+        {
+          menupos -= PAGE_SIZE;
+		  currsel = menupos;
+          if (currsel < 0)
+            {
+              currsel = maxfile - 1;
+              menupos = currsel - PAGE_SIZE + 1;
+            }
+
+          if (menupos < 0)
+            menupos = 0;
+
+          redraw = 1;
+        }
+
+      if (joy & PAD_TRIGGER_R)
+        {
+		  menupos += PAGE_SIZE;
+		  currsel = menupos;
+		  if (currsel > maxfile)
+            currsel = menupos = 0;
+
+          redraw = 1;
+        }
+
       if (joy & PAD_BUTTON_A)
         {
-          while (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
-            VIDEO_WaitVSync ();
-
           strcpy (scratchdir, basedir);
 
           if (scratchdir[strlen (scratchdir) - 1] != '/')
@@ -134,23 +163,20 @@ DirSelector (void)
 
           strcat (scratchdir, m);
 
-          if ( sd_getdir(scratchdir) )
+          if (GEN_getdir (scratchdir))
             {
               maxfile = p[0];
               currsel = menupos = 0;
               strcpy (basedir, scratchdir);
             }
           else
-            sd_getdir( basedir );
+            GEN_getdir (basedir);
 
           redraw = 1;
         }
 
       if (joy & PAD_BUTTON_B)
         {
-          while (PAD_ButtonsHeld (0) & PAD_BUTTON_B)
-            VIDEO_WaitVSync ();
-
           if (strcmp (basedir, "/"))
             {
               strcpy (scratchdir, basedir);
@@ -163,7 +189,7 @@ DirSelector (void)
                       else
                         scratchdir[i] = 0;
 
-                      if (sd_getdir(scratchdir) )
+                      if (GEN_getdir (scratchdir))
                         {
                           maxfile = p[0];
                           currsel = menupos = 0;
@@ -187,32 +213,13 @@ DirSelector (void)
           quit = 1;
         }
     }
+          /*** Remove any still held buttons ***/
+      while (PAD_ButtonsHeld (0))
+        VIDEO_WaitVSync ();
+#ifdef HW_RVL
+      while (WPAD_ButtonsHeld(0))
+        VIDEO_WaitVSync ();
+#endif
 
-  /*** Remove any pending buttons ***/
-  joy = PAD_ButtonsHeld (0);
-  while (joy)
-    {
-      VIDEO_WaitVSync ();
-      joy = PAD_ButtonsHeld (0);
-    }
 }
 
-/****************************************************************************
-* SD_Mount
-****************************************************************************/
-int SD_Mount( void )
-{
-  memset (basedir, 0, 1024);
-  memset (scratchdir, 0, 1024);
-  memset (dirbuffer, 0, 0x10000);
-
-  strcpy(basedir,"/");
-
-  if ( !sd_getdir(basedir) )
-    return 0;
-
-  DirSelector();
-  bannerscreen();
-
-  return 1;
-}
