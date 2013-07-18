@@ -93,7 +93,7 @@ CardFileExists (char *filename)
 int
 neogeo_get_memorycard (void)
 {
-
+    
 if (SaveDevice == 0)
 {
   int carderror;
@@ -149,7 +149,7 @@ else //SD Card
   FILE *fp;
   int Readed;
 
-  fp = fopen("/redux/save.bin", "rb");
+  fp = fopen("/neocd/save.bin", "rb");
   if (!fp)
     {
       // file does not exist, try to create it
@@ -255,7 +255,7 @@ else //SD Card
   FILE *fp;
   int Written;
 
-  fp = fopen("/redux/save.bin", "wb");
+  fp = fopen("/neocd/save.bin", "wb");
   if (!fp)
     {
       return 0;

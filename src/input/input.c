@@ -138,7 +138,7 @@ update_input (void)
 	/*** player one ***/
   p = PAD_ButtonsHeld (0);
 
-  if (p & PAD_TRIGGER_L)
+  if (p & PAD_TRIGGER_R)
     {
       if (mcard_written)
 	{
@@ -147,7 +147,7 @@ update_input (void)
 	}
     }
 
-  if (p & PAD_TRIGGER_R)
+  if (p & PAD_TRIGGER_L)
     neogeo_new_game ();
 
   keys = DecodeJoy (p);

@@ -23,12 +23,10 @@ void DrawScreen (void);
 void setbgcolour (u32 colour);
 void setfgcolour (u32 colour);
 void WaitButtonA (void);
-int ChooseMemCard (void);
 void ActionScreen (char *msg);
 void InfoScreen (char *msg);
 void LoadingScreen (char *msg);
-int loadnewgame (void);
 void bannerscreen (void);
-int load_options( void );
+int load_mainmenu (void);
 
 #endif

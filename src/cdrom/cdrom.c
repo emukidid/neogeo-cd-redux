@@ -2,6 +2,20 @@
 *   NeoCD Redux 0.1
 *   NeoGeo CD Emulator
 *   Copyright (C) 2007 softdev
+*
+*   This program is free software; you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation; either version 2 of the License, or
+*   (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*
+*   You should have received a copy of the GNU General Public License along
+*   with this program; if not, write to the Free Software Foundation, Inc.,
+*   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ****************************************************************************/
 
 /****************************************************************************
@@ -29,7 +43,7 @@
 #define JUE      "JUE"
 
 /*** Definitions ***/
-#define BUFFER_SIZE 131072
+#define BUFFER_SIZE    131072
 #define PRG_TYPE    0
 #define FIX_TYPE    1
 #define SPR_TYPE    2
@@ -37,7 +51,7 @@
 #define PAT_TYPE    4
 #define PCM_TYPE    5
 #define TITLE_X_SYS "TITLE_X.SYS"
-#define LOGO_X_PRG  "LOGO_X.PRG"
+#define LOGO_X_PRG "LOGO_X.PRG"
 
 #define    min(a, b) ((a) < (b)) ? (a) : (b)
 
@@ -46,7 +60,7 @@ char cdpath[1024];
 int img_display = 0;
 
 /*** Locals ***/
-static char cdrom_buffer[BUFFER_SIZE] ATTRIBUTE_ALIGN(32);
+static unsigned char cdrom_buffer[BUFFER_SIZE] ATTRIBUTE_ALIGN(32);
 
 /*** Prototypes ***/
 int recon_filetype(char *);
@@ -63,13 +77,13 @@ int ipl_in_progress = 0;
 *
 * Safeguard against over-reading and exploding memory
 ****************************************************************************/
-static int getfilelen(FILE *fp)
+static int getfilelen(GENFILE fp)
 {
   int len;
 
-  fseek(fp, 0, SEEK_END);
-  len = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
+  GEN_fseek(fp, 0, SEEK_END);
+  len = GEN_ftell(fp);
+  GEN_fseek(fp, 0, SEEK_SET);
 
   return len;
 }
@@ -126,6 +140,7 @@ void cdrom_inc_progress(int done)
     sectors++;
 
   sectorstodo = sectors >> 2;
+
 }
 
 /****************************************************************************
@@ -137,7 +152,7 @@ int cdrom_mount(char *mount)
 {
   char Path[256];
   char tmp[1024];
-  FILE *fp;
+  GENFILE fp;
 
   strcpy(tmp, mount);
 
@@ -148,11 +163,11 @@ int cdrom_mount(char *mount)
   strcpy(Path, tmp);
   strcat(Path, IPL_TXT);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     return 0;
 
-  fclose(fp);
+  GEN_fclose(fp);
 
   return 1;
 }
@@ -162,7 +177,7 @@ int cdrom_mount(char *mount)
 ****************************************************************************/
 static int cdrom_load_prg_file(char *FileName, unsigned int Offset)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   unsigned char *Ptr;
   int Readed;
@@ -171,7 +186,7 @@ static int cdrom_load_prg_file(char *FileName, unsigned int Offset)
   strcpy(Path, cdpath);
   strcat(Path, FileName);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
@@ -196,18 +211,18 @@ static int cdrom_load_prg_file(char *FileName, unsigned int Offset)
   do
     {
       /*** PRG01
-           Readed = fread (cdrom_buffer, 1, BUFFER_SIZE, fp);
+           Readed = GEN_fread (cdrom_buffer, 1, BUFFER_SIZE, fp);
            neogeo_swab (cdrom_buffer, Ptr, Readed);
       ***/
-      Readed = fread(Ptr, 1, BUFFER_SIZE, fp);
+      Readed = GEN_fread((char *)Ptr, 1, BUFFER_SIZE, fp);
       Ptr += Readed;
       totalbytes += Readed;
     }
-  while (Readed == BUFFER_SIZE);
-
-  fclose(fp);
+  while (Readed == BUFFER_SIZE);	//Readed==BUFFER_SIZE &&
 
   cdrom_inc_progress(totalbytes);
+
+  GEN_fclose(fp);
 
   if (Offset == 0 && ipl_in_progress)
     memcpy(neogeo_game_vectors, neogeo_prg_memory, 0x100);
@@ -220,14 +235,14 @@ static int cdrom_load_prg_file(char *FileName, unsigned int Offset)
 ****************************************************************************/
 static int cdrom_load_z80_file(char *FileName, unsigned int Offset)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   int flen;
 
   strcpy(Path, cdpath);
   strcat(Path, FileName);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
@@ -246,8 +261,8 @@ static int cdrom_load_z80_file(char *FileName, unsigned int Offset)
       return 1;
     }
 
-  totalbytes = fread(subcpu_memspace + Offset, 1, 0x10000, fp);
-  fclose(fp);
+  totalbytes = GEN_fread((char *)subcpu_memspace + Offset, 1, 0x10000, fp);
+  GEN_fclose(fp);
 
   cdrom_inc_progress(totalbytes);
 
@@ -267,7 +282,7 @@ static int cdrom_load_z80_file(char *FileName, unsigned int Offset)
 ****************************************************************************/
 static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   unsigned char *Ptr, *Src;
   int Readed;
@@ -277,7 +292,7 @@ static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
   strcpy(Path, cdpath);
   strcat(Path, FileName);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
@@ -304,12 +319,11 @@ static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
   Ptr = neogeo_fix_memory + Offset;
 
   totalbytes = 0;
-
   do
     {
       memset(cdrom_buffer, 0, BUFFER_SIZE);
-      Readed = fread(cdrom_buffer, 1, BUFFER_SIZE, fp);
-      Src = (u8 *)cdrom_buffer;
+      Readed = GEN_fread((char *)cdrom_buffer, 1, BUFFER_SIZE, fp);
+      Src = cdrom_buffer;
       if (Src == NULL) { }
       if (Readed > 0)
         {
@@ -326,7 +340,7 @@ static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
     }
   while (Readed == BUFFER_SIZE);
 
-  fclose(fp);
+  GEN_fclose(fp);
 
   /*** Reinstate low memory ***/
   if (restore)
@@ -338,6 +352,7 @@ static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
   cdrom_inc_progress(totalbytes);
 
   return 1;
+
 }
 
 /****************************************************************************
@@ -345,7 +360,7 @@ static int cdrom_load_fix_file(char *FileName, unsigned int Offset)
 ****************************************************************************/
 static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   unsigned char *Ptr;
   int Readed;
@@ -354,7 +369,7 @@ static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
   strcpy(Path, cdpath);
   strcat(Path, FileName);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
@@ -364,9 +379,9 @@ static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
   flen = getfilelen(fp);
   //sprintf(cddebug,"%s : %d", FileName, flen);
   //ActionScreen(cddebug);
-
   if ((Offset + flen) > 0x400000)
     {
+      ActionScreen(Path);
       sprintf(cddebug, "SPR : %08x %d", Offset, flen);
       ActionScreen(cddebug);
       return 1;
@@ -374,12 +389,10 @@ static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
 
   Ptr = neogeo_spr_memory + Offset;
   totalbytes = 0;
-
   do
     {
       memset(cdrom_buffer, 0, BUFFER_SIZE);
-      Readed = fread(cdrom_buffer, 1, BUFFER_SIZE, fp);
-
+      Readed = GEN_fread((char *)cdrom_buffer, 1, BUFFER_SIZE, fp);
       if (Readed > 0)
         {
           memcpy(Ptr, cdrom_buffer, Readed);
@@ -391,10 +404,11 @@ static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
     }
   while (Readed == BUFFER_SIZE);
 
-  fclose(fp);
+  GEN_fclose(fp);
   cdrom_inc_progress(totalbytes);
 
   return 1;
+
 }
 
 /****************************************************************************
@@ -402,7 +416,7 @@ static int cdrom_load_spr_file(char *FileName, unsigned int Offset)
 ****************************************************************************/
 static int cdrom_load_pcm_file(char *FileName, unsigned int Offset)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   unsigned char *Ptr;
   int bread = 0;
@@ -414,7 +428,7 @@ static int cdrom_load_pcm_file(char *FileName, unsigned int Offset)
   if (Offset > 0x100000)
     return 1;
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
@@ -434,9 +448,9 @@ static int cdrom_load_pcm_file(char *FileName, unsigned int Offset)
     }
 
   Ptr = neogeo_pcm_memory + Offset;
-  bread = fread(Ptr, 1, flen, fp);
+  bread = GEN_fread((char *)Ptr, 1, flen, fp);
   totalbytes = bread;
-  fclose(fp);
+  GEN_fclose(fp);
 
   cdrom_inc_progress(totalbytes);
 
@@ -449,25 +463,25 @@ static int cdrom_load_pcm_file(char *FileName, unsigned int Offset)
 static int
 cdrom_load_pat_file(char *FileName, unsigned int Offset, unsigned int Bank)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   int Readed;
 
   strcpy(Path, cdpath);
   strcat(Path, FileName);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       return 0;
     }
 
-  Readed = fread(cdrom_buffer, 1, BUFFER_SIZE, fp);
+  Readed = GEN_fread((char *)cdrom_buffer, 1, BUFFER_SIZE, fp);
   cdrom_apply_patch((short *) cdrom_buffer, Offset, Bank);
 
   totalbytes = Readed;
 
-  fclose(fp);
+  GEN_fclose(fp);
   cdrom_inc_progress(totalbytes);
 
   return 1;
@@ -481,11 +495,11 @@ cdrom_load_pat_file(char *FileName, unsigned int Offset, unsigned int Bank)
 void cdrom_set_sectors(void)
 {
   LOADFILE *lfile = (LOADFILE *) (neogeo_prg_memory + 0x115A06);
-  FILE *fp;
+  GENFILE fp;
   int i = 0;
   int flen;
   int total = 0;
-  //int Type;
+  int Type;
   char *p;
   char fname[16];
   char path[256];
@@ -499,7 +513,8 @@ void cdrom_set_sectors(void)
           if (p)
             p++;
 
-          //Type = recon_filetype(p);
+          Type = recon_filetype(p);
+	  if ( Type == 0) { }
 
           p = strstr(fname, ";");
           if (p)
@@ -507,15 +522,15 @@ void cdrom_set_sectors(void)
 
           strcpy(path, cdpath);
           strcat(path, fname);
-          fp = fopen(path, "rb");
+          fp = GEN_fopen(path, "rb");
           if (fp)
             {
-              fseek(fp, 0, SEEK_END);
-              flen = ftell(fp);
+              GEN_fseek(fp, 0, SEEK_END);
+              flen = GEN_ftell(fp);
               total += (flen >> 11);
               if (flen & 0x7ff)
                 total++;
-              fclose(fp);
+              GEN_fclose(fp);
             }
 
           i++;
@@ -528,6 +543,7 @@ void cdrom_set_sectors(void)
       m68k_write_memory_32(0x10F68C, total);
       m68k_write_memory_32(0x10F690, 0);
       m68k_write_memory_8(0x10F793, 0);
+
     }
 }
 
@@ -548,7 +564,6 @@ void cdrom_load_files(void)
   /*** Don't let it go near the CDROM ***/
   m68k_write_memory_8(0x10F6C2, 7);
   m68k_write_memory_8(0x10FEDB, m68k_read_memory_8(0x10FEDE));
-
 
   /*** Get new pointer ***/
   address = m68k_read_memory_32(0x10F6A0);
@@ -601,9 +616,6 @@ void cdrom_load_files(void)
 
   Off = lfile->offset;
 
-  /*** BE VERBOSE - show loaded files ***/
-  LoadingScreen((char *) FileName);
-
   switch (Type)
     {
     case PRG_TYPE:
@@ -627,6 +639,7 @@ void cdrom_load_files(void)
       cdrom_load_pcm_file(FileName, (Bnk * 0x80000) + (Off >> 1));
       break;
     }
+
 }
 
 /****************************************************************************
@@ -719,7 +732,7 @@ void neogeo_upload(void)
 
   switch (Zone & 0x0F)
     {
-    case 0:	// PRG
+    case 0:			// PRG
 
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       Dest = neogeo_prg_memory + m68k_read_memory_32(0x10FEF4);
@@ -732,7 +745,7 @@ void neogeo_upload(void)
 
       break;
 
-    case 2:	// SPR
+    case 2:			// SPR
       Banque = m68k_read_memory_8(0x10FEDB);
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       Offset = m68k_read_memory_32(0x10FEF4) + (Banque << 20);
@@ -760,7 +773,7 @@ void neogeo_upload(void)
 
       break;
 
-    case 1:	// FIX
+    case 1:			// FIX
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       Offset = m68k_read_memory_32(0x10FEF4) >> 1;
       Dest = neogeo_fix_memory + Offset;
@@ -778,7 +791,7 @@ void neogeo_upload(void)
 
       break;
 
-    case 3:	// Z80
+    case 3:			// Z80
 
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       Dest = subcpu_memspace + (m68k_read_memory_32(0x10FEF4) >> 1);
@@ -788,7 +801,7 @@ void neogeo_upload(void)
 
       break;
 
-    case 5:	// Z80 patch
+    case 5:			// Z80 patch
 
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       cdrom_apply_patch((short *) Source, m68k_read_memory_32(0x10FEF4),
@@ -796,7 +809,7 @@ void neogeo_upload(void)
 
       break;
 
-    case 4:	// PCM
+    case 4:			// PCM
       Banque = m68k_read_memory_8(0x10FEDB);
       Source = neogeo_prg_memory + m68k_read_memory_32(0x10FEF8);
       Offset = (m68k_read_memory_32(0x10FEF4) >> 1) + (Banque << 19);
@@ -822,6 +835,7 @@ void neogeo_upload(void)
       m68k_write_memory_16(0x10FEDB, Banque);
 
       break;
+
     }
 }
 
@@ -835,18 +849,18 @@ static void cdrom_load_logo(void)
   char logo[12] = LOGO_X_PRG;
   char jue[4] = JUE;
   char Path[256];
-  FILE *fp;
+  GENFILE fp;
 
   logo[5] = jue[m68k_read_memory_8(0x10FD83) & 3];
 
   strcpy(Path, cdpath);
   strcat(Path, logo);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (fp)
     {
-      fread(neogeo_prg_memory + 0x120000, 1, 0x20000, fp);
-      fclose(fp);
+      GEN_fread(((char *)neogeo_prg_memory + 0x120000), 1, 0x20000, fp);
+      GEN_fclose(fp);
     }
 }
 
@@ -884,7 +898,7 @@ void cdrom_apply_patch(short *source, int offset, int bank)
 ****************************************************************************/
 void neogeo_ipl(void)
 {
-  FILE *fp;
+  GENFILE fp;
   char Path[256];
   char buf[2048];
   int len;
@@ -894,7 +908,7 @@ void neogeo_ipl(void)
   strcpy(Path, cdpath);
   strcat(Path, IPL_TXT);
 
-  fp = fopen(Path, "rb");
+  fp = GEN_fopen(Path, "rb");
   if (!fp)
     {
       ActionScreen((char *) "NO IPL!");
@@ -907,10 +921,11 @@ void neogeo_ipl(void)
          next line out ;)
   ****/
   memset(buf, 26, 2048);
-  len = fread(buf, 1, 2048, fp);
+  len = GEN_fread(buf, 1, 2048, fp);
   memcpy(neogeo_prg_memory + 0x111204, buf, len + 2);
-  fclose(fp);
+  GEN_fclose(fp);
 
   ipl_in_progress = 1;
   cpu_enabled = 0;
+
 }

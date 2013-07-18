@@ -140,11 +140,8 @@ StartGX (void)
   GX_SetScissor (0, 0, vmode->fbWidth, vmode->efbHeight);
   GX_SetDispCopySrc (0, 0, vmode->fbWidth, vmode->efbHeight);
   GX_SetDispCopyDst (vmode->fbWidth, vmode->xfbHeight);
-  GX_SetCopyFilter (vmode->aa, vmode->sample_pattern, GX_TRUE,
-		    vmode->vfilter);
-  GX_SetFieldMode (vmode->field_rendering,
-		   ((vmode->viHeight ==
-		     2 * vmode->xfbHeight) ? GX_ENABLE : GX_DISABLE));
+  GX_SetCopyFilter (vmode->aa, vmode->sample_pattern, GX_TRUE, vmode->vfilter);
+  GX_SetFieldMode (vmode->field_rendering, ((vmode->viHeight == 2 * vmode->xfbHeight) ? GX_ENABLE : GX_DISABLE));
   GX_SetPixelFmt (GX_PF_RGB8_Z24, GX_ZC_LINEAR);
   GX_SetCullMode (GX_CULL_NONE);
   GX_CopyDisp (xfb[whichfb ^ 1], GX_TRUE);
@@ -230,5 +227,7 @@ update_video (int width, int height, char *vbuffer)
 
   VIDEO_SetNextFramebuffer (xfb[whichfb]);
   VIDEO_Flush ();
+  
+  VIDEO_WaitVSync ();
 
 }

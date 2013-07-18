@@ -83,8 +83,6 @@ unsigned char *neogeo_spr_memory = NULL;
 unsigned char *neogeo_pcm_memory = NULL;
 unsigned char *neogeo_all_memory = NULL;
 
-unsigned short SaveDevice;
-
 unsigned char neogeo_memorycard[8192];
 char neogeo_game_vectors[0x100];
 int FrameTicker = 0;
@@ -105,7 +103,6 @@ static void neogeo_do_cdda(int command, int track_number_bcd);
 static void neogeo_read_gamename(void);
 static void neogeo_cdda_check(void);
 static void neogeo_run(void);
-static void neogeo_reset(void);
 static void neogeo_run_bios(void);
 
 /*** 68K core ***/
@@ -201,7 +198,7 @@ static void neogeo_free_memory(void)
 ****************************************************************************/
 int main(void)
 {
-    FILE *fp;
+    GENFILE fp;
     unsigned int crc;
     int retPAD = 0;
 
@@ -225,16 +222,16 @@ int main(void)
       // for Digital Component cable for SDTV compatibility.
       if(VIDEO_HaveComponentCable() && !(PAD_ButtonsDown(0) & PAD_TRIGGER_L)) {
         if((strstr(IPLInfo,"PAL")!=NULL)) {
-          vmode = &TVPal576ProgScale;                            //Progressive 576p60hz
+          vmode = &TVPal576ProgScale;                     //Progressive 576p60hz
         }
         else {
-          vmode = &TVNtsc480Prog;                           //Progressive 480p
+          vmode = &TVNtsc480Prog;                         //Progressive 480p
         }
      }
      else {
         //try to use the IPL region
         if(strstr(IPLInfo,"PAL")!=NULL) {
-          vmode = &TVPal576IntDfScale;                           //Interlaced 576i60hz
+          vmode = &TVPal576IntDfScale;                    //Interlaced 576i60hz
         }
         else if(strstr(IPLInfo,"NTSC")!=NULL) {
           vmode = &TVNtsc480IntDf;                        //Interlaced 480i
@@ -270,16 +267,18 @@ int main(void)
 	VIDEO_WaitVSync();
 
     fatInitDefault();
-
-    /*** 0.1.46 - All memory allocated in one chunk ***/
+//  load_settings_default(); // eventually add settings ???
+    load_mainmenu();
+    
+    //  0.1.46 - All memory allocated in one chunk
     neogeo_all_memory = memalign(32, MEM_BUCKET);
     if ( neogeo_all_memory == NULL )
-	    return 0;
+       return 0;
 
-    /*** Clear memory ***/
+    //  Clear memory
     memset(neogeo_all_memory, 0, MEM_BUCKET);
 
-    /*** Create pointers ***/
+    //  Create pointers
     neogeo_prg_memory = neogeo_all_memory;
     neogeo_spr_memory = neogeo_prg_memory + PRG_MEM;
     neogeo_fix_memory = neogeo_spr_memory + SPR_MEM;
@@ -287,54 +286,56 @@ int main(void)
     neogeo_rom_memory = neogeo_pcm_memory + PCM_MEM;
     neogeo_ipl_memory = neogeo_rom_memory + ROM_MEM;
 
-	/*** Initialise Mame memory map etc ***/
+    //  Initialise Mame memory map etc
     initialise_memmap();
 
-	/*** Allocate memory card buffer ***/
+    //  Allocate memory card buffer
     memset(neogeo_memorycard, 0, 8192);
-
-    SaveDevice = ChooseMemCard();
-
-    while (neogeo_get_memorycard() == 0)
-	ActionScreen((char *) "Please insert save device");
 
     InfoScreen((char *) "Mounting media");
 
-    SD_Mount();
+    //  SET DEVICE HANDLER and START DEVICE
+    if (use_SD == 0) DVD_SetHandler();         //  DVD
+    else SD_SetHandler();                      // SD
+    GEN_mount();
 
-    fp = fopen("redux/bios/NeoCD.bin", "rb");
+    //  Find BIOS 
+    fp = GEN_fopen("neocd/bios/NeoCD.bin", "rb");
     if (!fp) {
-	InfoScreen((char *) "BIOS not found!");
-	while (1);
+       fp = GEN_fopen("bios/NeoCD.bin", "rb");
+          if (!fp) {
+             InfoScreen((char *) "BIOS not found!");
+             while (1);
+          }
     }
 
-    fread(neogeo_rom_memory, 1, ROM_MEM, fp);
-    fclose(fp);
+    GEN_fread((char *)neogeo_rom_memory, 1, ROM_MEM, fp);
+    GEN_fclose(fp);
 
-  /*** Check BIOS ***/
+    //  Check BIOS
     crc = crc32(0, neogeo_rom_memory, ROM_MEM);
 
     if (crc == LEBIOS)
-		neogeo_swab(neogeo_rom_memory, neogeo_rom_memory, ROM_MEM);
+       neogeo_swab(neogeo_rom_memory, neogeo_rom_memory, ROM_MEM);
     else
-	{
-		if (crc != BEBIOS) {
-		    InfoScreen((char *) "Invalid BIOS!");
-		    while (1);
-		}
+    {
+       if (crc != BEBIOS) {
+          InfoScreen((char *) "Invalid BIOS!");
+          while (1);
+       }
     }
 
-	/*** Swap the Sprite data - required for BE bios ***/
-    neogeo_swab(neogeo_rom_memory + 0x50000, neogeo_rom_memory + 0x50000,
-		0x20000);
+    //  Swap the Sprite data - required for BE bios
+    neogeo_swab(neogeo_rom_memory + 0x50000, neogeo_rom_memory + 0x50000, 0x20000);
 
-    /*** Patch ROM ***/
+    
+    //  Patch ROM
     neogeo_patch_rom();
 
-	/*** Initialise local video ***/
+    //  Initialise local video
     video_init();
 
-	/*** Start CDROM system ***/
+    //  Start CDROM system
     cdrom_mount(basedir);
 
     cdda_init();
@@ -344,10 +345,10 @@ int main(void)
     neogeo_run();
 
     neogeo_free_memory();
-
+    
     while (1);
 
-    return 0; /*** Keep gcc happy ***/
+    return 0; // Keep gcc happy
 }
 
 /****************************************************************************
@@ -442,7 +443,7 @@ static void neogeo_run(void)
 /****************************************************************************
 * neogeo_reset
 ****************************************************************************/
-static void neogeo_reset(void)
+void neogeo_reset(void)
 {
     m68k_pulse_reset();
     m68k_set_reg(M68K_REG_PC, 0x122);
@@ -702,14 +703,19 @@ void neogeo_new_game(void)
 	/*** Prevent scratching noises in menu ***/
     AUDIO_StopDMA();
 
-    if (!load_options())
+    if (!load_mainmenu() /* !load_options() */)
     {
 	AUDIO_StartDMA();
 	return;
     }
 
-    SD_Mount();
-    fcloseall();
+    if (use_SD == 0) DVD_SetHandler();         //  DVD
+    else SD_SetHandler();                      // SD 
+    GEN_mount();
+    GEN_fcloseall();
+//    fcloseall();
+//    if (use_SD == 0) DVDfcloseall;
+//    else fcloseall();
 
 	/*** Clear memory, except the BIOS ROM ***/
     memset(neogeo_prg_memory, 0, PRG_MEM);
