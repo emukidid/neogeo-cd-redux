@@ -1,0 +1,75 @@
+/****************************************************************************
+*   NeoCD Redux 0.1
+*   NeoGeo CD Emulator
+*   Copyright (C) 2007 softdev
+*
+* Acknowledgements
+*
+*	NGCD 0.8 "The Kick Ass NeoGeo CD Emulator" - Martinez Fabrice
+*	NeoCD/SDL 0.3.1                            - Fosters
+*	NeogeoCDZ                                  - NJ
+*	Musashi M68000 C Core                      - Karl Stenerud
+*	Mame Z80 C Core                            - Juergen Buchmueller
+*	Sound core and miscellaneous               - Mame Team
+*
+****************************************************************************/
+
+#ifndef __NEOGEOREDUX__
+#define __NEOGEOREDUX__
+
+#define APPTITLE "NeoCD-Redux"
+#define VERSION "0.1.52"
+#define SAMPLE_RATE 48000
+
+/*** Header files ***/
+#include <gccore.h>
+#include "m68k.h"
+#include "z80intrf.h"
+#include "memory.h"
+#include "cpuintf.h"
+#include "cdrom.h"
+#include "cdaudio.h"
+#include "patches.h"
+#include "video.h"
+#include "gxvideo.h"
+#include "pd4990a.h"
+#include "input.h"
+#include "timer.h"
+#include "streams.h"
+#include "ay8910.h"
+#include "2610intf.h"
+#include "sound.h"
+#include "gcaudio.h"
+#include "mcard.h"
+#include "gui.h"
+#include "dirsel.h"
+
+/*** Functions ***/
+void neogeo_swab(const void *src1, const void *src2, int isize);
+int neogeo_redux(void);
+void neogeo_decode_spr(unsigned char *mem, unsigned int offset,
+		       unsigned int length);
+void neogeo_decode_fix(unsigned char *mem, unsigned int offset,
+		       unsigned int length);
+void neogeo_cdda_control(void);
+void neogeo_prio_switch(void);
+void neogeo_exit(void);
+void neogeo_exit_cdplayer(void);
+void neogeo_new_game(void);
+void neogeo_trace(void);
+
+/*** Globals ***/
+extern unsigned char *neogeo_rom_memory;
+extern unsigned char *neogeo_prg_memory;
+extern unsigned char *neogeo_fix_memory;
+extern unsigned char *neogeo_ipl_memory;
+extern unsigned char *neogeo_spr_memory;
+extern unsigned char *neogeo_pcm_memory;
+extern unsigned char neogeo_memorycard[8192];
+extern unsigned short SaveDevice;
+
+extern char neogeo_game_vectors[0x100];
+extern char neogeo_region;
+extern int patch_ssrpg;
+
+#endif

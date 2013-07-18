@@ -1,0 +1,16 @@
+ 
+
+https://bitbucket.org/infact/neo-cd-redux
+ 
+ 
+2011-08-29 -  Initial import of Softdev's neo-cd redux 0.1.52A source code
+2011-08-29 -  removed tiny fatfs, new makefile
+2011-08-29 -  removed compile errors
+2011-08-30 -  removed old memcard, sd, samba stuff
+2011-08-30 -  shutup some compiler warnings
+2011-08-30 -  re-enabled audio
+2011-08-31 -  first working version
+2011-08-31 -  re-added audio, memcard support
+2011-09-01 -  Completely removed mp3 related stuff for now
+2011-09-02 -  added initial sd saving support
+2011-11-05 -  tidy: get rid of (sdl) replacement types
