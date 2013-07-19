@@ -13,8 +13,6 @@
  */
 
 u8 soundbuffer[2][3840] ATTRIBUTE_ALIGN(32);
-u32 mixbuffer;
-u32 audioStarted;
 static int whichab = 0;
 static int IsPlaying = 0;
 /****************************************************************************
@@ -28,14 +26,17 @@ static int IsPlaying = 0;
  ****************************************************************************/
 static void AudioSwitchBuffers(void)
 {
-    static int len[2] = { 3200, 3200 };
+//    static int len[2] = { 3200, 3200 };
+    static int len[2] = { 3840, 3840 };
 
 //    AUDIO_StopDMA();
 //    memset(soundbuffer, 0, 3200);
 //    mixer_init();   
     whichab ^= 1;
-    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
-//    memset(soundbuffer[whichab], 0, len[whichab]);
+//    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
+    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3840);
+    
+    //    memset(soundbuffer[whichab], 0, len[whichab]);
 
     IsPlaying = 1;
     AUDIO_InitDMA((u32) soundbuffer[whichab], len[whichab]);
@@ -47,7 +48,6 @@ static void AudioSwitchBuffers(void)
  //       mixer_update_audio();
 }
 
-
 /****************************************************************************
  * InitGCAudio
  *
@@ -58,7 +58,8 @@ void InitGCAudio(void)
     AUDIO_Init(NULL);
     AUDIO_SetDSPSampleRate(AI_SAMPLERATE_48KHZ);
     AUDIO_RegisterDMACallback(AudioSwitchBuffers);
-    memset(soundbuffer, 0, 3200);
+//    memset(soundbuffer, 0, 3200);
+    memset(soundbuffer, 0, 3840);
     mixer_init();
 }
 
@@ -76,21 +77,58 @@ void update_audio(void)
     }
 }
 
-//void update_audio(void)
-//{
-//    static int len;
-//    mixer_update_audio();
-//    len = mixer_getaudio(soundbuffer[mixbuffer], 3840);
 
-//    s16 *sb = (s16 *)(soundbuffer[mixbuffer]);
-//    DCFlushRange((void *)sb, len);
-//    AUDIO_InitDMA((u32) sb, len);
-//    mixbuffer ^= 1;
 
-//    if (!audioStarted)
-//    {
-//	AUDIO_StopDMA();
-//	AUDIO_StartDMA();
-//	audioStarted = 1;
-//    }
-//}
+
+
+
+//////////////  infact /////////////////////
+
+/*
+u8 soundbuffer[2][3840] ATTRIBUTE_ALIGN(32);
+u32 mixbuffer;
+u32 audioStarted; */
+
+/****************************************************************************
+ * InitGCAudio
+ *
+ * Stock code to set the DSP at 48Khz
+ ****************************************************************************/
+/*void InitGCAudio(void)
+{
+    AUDIO_Init(NULL);
+    AUDIO_SetDSPSampleRate(AI_SAMPLERATE_48KHZ);
+
+    memset(soundbuffer, 0, 2 * 3840);
+    mixer_init();
+    audioStarted = 0;
+    mixbuffer = 0;
+}
+*/
+/****************************************************************************
+ * NeoCD Audio Update
+ *
+ * This is called on each VBL to get the next frame of audio.
+ *****************************************************************************/
+/*void update_audio(void)
+{
+    static int len;
+    mixer_update_audio();
+    len = mixer_getaudio(soundbuffer[mixbuffer], 3840);
+
+    s16 *sb = (s16 *)(soundbuffer[mixbuffer]);
+    DCFlushRange((void *)sb, len);
+    AUDIO_InitDMA((u32) sb, len);
+    mixbuffer ^= 1;
+
+    if (!audioStarted)
+    {
+        AUDIO_StopDMA();
+        AUDIO_StartDMA();
+        audioStarted = 1;
+    }
+}
+*/
+
+
+
