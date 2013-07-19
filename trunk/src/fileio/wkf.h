@@ -25,6 +25,5 @@ void wkfReinit();
 
 void __wkfReset();
 extern bool wkfIsInserted(int chn);
-extern void WKF_SetHandler (void);
 
 #endif

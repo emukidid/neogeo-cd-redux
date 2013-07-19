@@ -29,7 +29,8 @@ static MIXER mixer;
  * As such it only contains the mixing function for 16BITMSB samples.
  ****************************************************************************/
 void
-ngcMixAudio (Uint8 * dst, Uint8 * src, int len, int volume)
+ngcMixAudio (u8 * dst, u8 * src, int len, int volume)
+//ngcMixAudio (Uint8 * dst, Uint8 * src, int len, int volume)
 {
 	
   s16 src1, src2;

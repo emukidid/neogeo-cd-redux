@@ -28,6 +28,12 @@
 #include "gcaudio.h"
 #include "ncdr_rom.h"
 
+
+#ifdef HW_RVL
+#include <wiiuse/wpad.h>
+#include <di/di.h>
+#endif
+
 /*** Bios Checksums ***/
 #define LEBIOS 0xdf9de490
 #define BEBIOS 0x33697892
@@ -200,14 +206,17 @@ int main(void)
 {
     GENFILE fp;
     unsigned int crc;
-    int retPAD = 0;
 
     VIDEO_Init();
-
     PAD_Init();
 
+#ifdef HW_RVL
+   WPAD_Init();
+#else
+   int retPAD = 0;
    while(retPAD <= 0) { retPAD = PAD_ScanPads(); usleep(100); }
-   
+#endif
+    
    __SYS_ReadROM(IPLInfo,256,0);                           // Read IPL tag
     
    // Get the IPL TAG to set video mode then :
@@ -268,9 +277,15 @@ int main(void)
     if (vmode->viTVMode & VI_NON_INTERLACE)
 	VIDEO_WaitVSync();
 
+#ifdef HW_RVL
+  WPAD_Init();
+  WPAD_SetIdleTimeout(60);
+  WPAD_SetDataFormat(WPAD_CHAN_ALL,WPAD_FMT_BTNS_ACC_IR);
+  WPAD_SetVRes(WPAD_CHAN_ALL,640,480);
+#endif
+    
     fatInitDefault();
 //  load_settings_default(); // eventually add settings ???
-    load_mainmenu();
     
     //  0.1.46 - All memory allocated in one chunk
     neogeo_all_memory = memalign(32, MEM_BUCKET);
@@ -291,39 +306,37 @@ int main(void)
     //  Initialise Mame memory map etc
     initialise_memmap();
 
-    //  Allocate memory card buffer
-    memset(neogeo_memorycard, 0, 8192);
-
-    InfoScreen((char *) "Mounting media");
-
+    load_mainmenu();
     //  SET DEVICE HANDLER and START DEVICE
-    if (use_SD == 1) SD_SetHandler();           //  SD
-    else if (use_DVD == 1) DVD_SetHandler();    //  DVD
-    else if (use_WKF == 1) WKF_SetHandler();    //  WKF
-    GEN_mount();
 
-    
+//    InfoScreen((char *) "Mounting media");
+
+//    if (use_DVD == 1) DVD_SetHandler();
+//    else SD_SetHandler();
+//    GEN_mount();  
+
+
     //  Find BIOS 
-    if (use_WKF == 1){
-       fp = GEN_fopen("WKF:/neocd/bios/NeoCD.bin", "rb");
-       if (!fp) {
-          fp = GEN_fopen("WKF:/bios/NeoCD.bin", "rb");
+    char bios_dir[25];
+    char bios_dir1[25];
+
+#ifdef HW_RVL
+       sprintf(bios_dir, "sd:/neocd/bios/NeoCD.bin");    // always use internal slot for bios - wii
+       sprintf(bios_dir1,"sd:/bios/NeoCD.bin");
+#else
+       sprintf(bios_dir, "neocd/bios/NeoCD.bin");
+       sprintf(bios_dir1,"bios/NeoCD.bin");              // always use SD Gecko slot for bios - GC
+#endif
+
+    fp = GEN_fopen(bios_dir, "rb");
+    if (!fp) {
+       fp = GEN_fopen(bios_dir1, "rb");
           if (!fp) {
              InfoScreen((char *) "BIOS not found!");
              while (1);
           }
-       }
     }
-    else {
-       fp = GEN_fopen("neocd/bios/NeoCD.bin", "rb");
-       if (!fp) {
-          fp = GEN_fopen("bios/NeoCD.bin", "rb");
-             if (!fp) {
-                InfoScreen((char *) "BIOS not found!");
-                while (1);
-             }
-       }
-    }
+
 
     GEN_fread((char *)neogeo_rom_memory, 1, ROM_MEM, fp);
     GEN_fclose(fp);
@@ -725,13 +738,12 @@ void neogeo_new_game(void)
 	return;
     }
 
-    if (use_SD == 0) DVD_SetHandler();         //  DVD
-    else SD_SetHandler();                      // SD 
+    if (use_DVD == 1) DVD_SetHandler();
+    else SD_SetHandler();
+
     GEN_mount();
     GEN_fcloseall();
-//    fcloseall();
-//    if (use_SD == 0) DVDfcloseall;
-//    else fcloseall();
+
 
 	/*** Clear memory, except the BIOS ROM ***/
     memset(neogeo_prg_memory, 0, PRG_MEM);

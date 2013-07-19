@@ -11,13 +11,18 @@
 
 #include "neocdredux.h"
 
+#ifdef HW_RVL
+#include <wiiuse/wpad.h>
+#endif
+
 #define PAGE_SIZE 8
 
 char basedir[1024];
 char scratchdir[1024];
 char dirbuffer[0x10000] ATTRIBUTE_ALIGN (32);
 
-
+char root_dir[10];
+//int have_ROM;
 /****************************************************************************
 * DrawDirSelector
 ****************************************************************************/
@@ -77,149 +82,161 @@ DirSelector (void)
   int currsel = 0;
   int menupos = 0;
   int redraw = 1;
-  unsigned short joy;
-#ifdef HW_RVL
-  u32 wpad;
-  
-#endif
-
+  short joy;
   int quit = 0;
+  have_ROM = 0;
 
   maxfile = p[0];
 
   while (!quit)
-    {
-      if (redraw)
+  {
+     if (redraw)
+     {
+        DrawDirSelector (maxfile, menupos, currsel);
+        redraw = 0;
+     }
+
+     joy = getMenuButtons();
+
+     // Scroll displayed directories
+     if (joy & PAD_BUTTON_DOWN)
+     {
+        currsel++;
+        if (currsel == maxfile)
+           currsel = menupos = 0;
+        if ((currsel - menupos) >= PAGE_SIZE)
+           menupos += PAGE_SIZE;
+
+        redraw = 1;
+     }
+
+     if (joy & PAD_BUTTON_UP)
+     {
+        currsel--;
+        if (currsel < 0)
         {
-          DrawDirSelector (maxfile, menupos, currsel);
-          redraw = 0;
+           currsel = maxfile - 1;
+           menupos = currsel - PAGE_SIZE + 1;
         }
 
-      joy = PAD_ButtonsDown (0);
+        if (currsel < menupos)
+           menupos -= PAGE_SIZE;
 
-      if (joy & PAD_BUTTON_DOWN)
+        if (menupos < 0)
+           menupos = 0;
+
+        redraw = 1;
+     }
+
+     // Previous page of displayed directories
+     if (joy & PAD_TRIGGER_L)
+     {
+        menupos -= PAGE_SIZE;
+        currsel = menupos;
+        if (currsel < 0)
         {
-          currsel++;
-          if (currsel == maxfile)
-            currsel = menupos = 0;
-          if ((currsel - menupos) >= PAGE_SIZE)
-            menupos += PAGE_SIZE;
-
-          redraw = 1;
+           currsel = maxfile - 1;
+           menupos = currsel - PAGE_SIZE + 1;
         }
 
-      if (joy & PAD_BUTTON_UP)
+        if (menupos < 0)
+           menupos = 0;
+
+        redraw = 1;
+     }
+
+     // Next page of displayed directories
+     if (joy & PAD_TRIGGER_R)
+     {
+        menupos += PAGE_SIZE;
+        currsel = menupos;
+        if (currsel > maxfile)
+           currsel = menupos = 0;
+
+        redraw = 1;
+     }
+
+     // Go to Next Directory
+     if (joy & PAD_BUTTON_A)
+     {
+        strcpy (scratchdir, basedir);
+
+        if (scratchdir[strlen (scratchdir) - 1] != '/')
+           strcat (scratchdir, "/");
+
+        m = (char *) p[currsel + 1];
+
+        strcat (scratchdir, m);
+
+        if (GEN_getdir (scratchdir))
         {
-          currsel--;
-          if (currsel < 0)
-            {
-              currsel = maxfile - 1;
-              menupos = currsel - PAGE_SIZE + 1;
-            }
-
-          if (currsel < menupos)
-            menupos -= PAGE_SIZE;
-
-          if (menupos < 0)
-            menupos = 0;
-
-          redraw = 1;
+           maxfile = p[0];
+           currsel = menupos = 0;
+           strcpy (basedir, scratchdir);
         }
+        else
+           GEN_getdir (basedir);
 
-	  if (joy & PAD_TRIGGER_L)
+        redraw = 1;
+     }
+
+     // Go to Previous Directory
+     if (joy & PAD_BUTTON_B)
+     {
+ //      if (strcmp (basedir, root_dir) == 0)  ActionScreen ("return to menu");
+       
+       
+        if (strcmp (basedir, "/"))
         {
-          menupos -= PAGE_SIZE;
-		  currsel = menupos;
-          if (currsel < 0)
-            {
-              currsel = maxfile - 1;
-              menupos = currsel - PAGE_SIZE + 1;
-            }
+           strcpy (scratchdir, basedir);
+           for (i = strlen (scratchdir) - 1; i >= 0; i--)
+           {
+              if (scratchdir[i] == '/')
+              {
+                 if (i == 0) strcpy (scratchdir, "/");
+                 else scratchdir[i] = 0;
 
-          if (menupos < 0)
-            menupos = 0;
+                 if (strcmp (scratchdir, root_dir) == 0) 
+                    sprintf(scratchdir,"%s/",root_dir);
 
-          redraw = 1;
+                 if (GEN_getdir (scratchdir))
+                 {
+                    maxfile = p[0];
+                    currsel = menupos = 0;
+                    strcpy (basedir, scratchdir);
+                  }
+                  break;
+              }
+           }
         }
+        redraw = 1;
+     }
 
-      if (joy & PAD_TRIGGER_R)
-        {
-		  menupos += PAGE_SIZE;
-		  currsel = menupos;
-		  if (currsel > maxfile)
-            currsel = menupos = 0;
+     // Quit browser, return to device menu
+     if (joy & PAD_TRIGGER_Z) {
+        have_ROM = 0;
+        quit = 1;
+     }
 
-          redraw = 1;
-        }
+     // LOAD Selected Directory
+     if (joy & PAD_BUTTON_X)
+     {
+        /*** Set basedir to mount point ***/
+        if (basedir[strlen (basedir) - 1] != '/')
+           strcat (basedir, "/");
 
-      if (joy & PAD_BUTTON_A)
-        {
-          strcpy (scratchdir, basedir);
+        m = (char *) p[currsel + 1];
+        strcat (basedir, m);
+        have_ROM = 1;
+        quit = 1;
+     }
+  }
 
-          if (scratchdir[strlen (scratchdir) - 1] != '/')
-            strcat (scratchdir, "/");
-
-          m = (char *) p[currsel + 1];
-
-          strcat (scratchdir, m);
-
-          if (GEN_getdir (scratchdir))
-            {
-              maxfile = p[0];
-              currsel = menupos = 0;
-              strcpy (basedir, scratchdir);
-            }
-          else
-            GEN_getdir (basedir);
-
-          redraw = 1;
-        }
-
-      if (joy & PAD_BUTTON_B)
-        {
-          if (strcmp (basedir, "/"))
-            {
-              strcpy (scratchdir, basedir);
-              for (i = strlen (scratchdir) - 1; i >= 0; i--)
-                {
-                  if (scratchdir[i] == '/')
-                    {
-                      if (i == 0)
-                        strcpy (scratchdir, "/");
-                      else
-                        scratchdir[i] = 0;
-
-                      if (GEN_getdir (scratchdir))
-                        {
-                          maxfile = p[0];
-                          currsel = menupos = 0;
-                          strcpy (basedir, scratchdir);
-                        }
-                      break;
-                    }
-                }
-            }
-          redraw = 1;
-        }
-
-      if (joy & PAD_BUTTON_X)
-        {
-          /*** Set basedir to mount point ***/
-          if (basedir[strlen (basedir) - 1] != '/')
-            strcat (basedir, "/");
-
-          m = (char *) p[currsel + 1];
-          strcat (basedir, m);
-          quit = 1;
-        }
-    }
-          /*** Remove any still held buttons ***/
-      while (PAD_ButtonsHeld (0))
-        VIDEO_WaitVSync ();
+  /*** Remove any still held buttons ***/
+  while (PAD_ButtonsHeld (0)) PAD_ScanPads();
 #ifdef HW_RVL
-      while (WPAD_ButtonsHeld(0))
-        VIDEO_WaitVSync ();
+  while (WPAD_ButtonsHeld(0)) WPAD_ScanPads();
 #endif
-
 }
 
+ 

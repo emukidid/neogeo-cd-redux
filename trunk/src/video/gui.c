@@ -14,6 +14,11 @@
 #include "backdrop.h"
 #include "banner.h"
 
+#ifdef HW_RVL
+#include <wiiuse/wpad.h>
+#include <di/di.h>
+#endif
+
 /*** GC 2D Video ***/
 extern unsigned int *xfb[2];
 extern int whichfb;
@@ -29,9 +34,12 @@ static unsigned char bannerunc[banner_WIDTH * banner_HEIGHT * 2] ATTRIBUTE_ALIGN
 static void unpack (void);
 
 unsigned short SaveDevice = 1;           // default save location to SD card
-int use_SD;
-int use_DVD;
-int use_WKF;
+int use_SD  = 0;
+int use_USB = 0;
+int use_IDE = 0;
+int use_WKF = 0;
+int use_DVD = 0;
+
 int mega = 0;
 
 /****************************************************************************
@@ -269,10 +277,13 @@ setbgcolour (u32 colour)
 void
 WaitButtonA (void)
 {
-  while (!(PAD_ButtonsHeld (0) & PAD_BUTTON_A))
+  short joy;
+  joy = getMenuButtons();
+
+  while (!(joy & PAD_BUTTON_A)) joy = getMenuButtons();
     VIDEO_WaitVSync ();
 
-  while (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
+  while (joy & PAD_BUTTON_A) joy = getMenuButtons();
     VIDEO_WaitVSync ();
 }
 
@@ -421,7 +432,7 @@ int DoMenu (char items[][22], int maxitems)
   int redraw = 1;
   int quit = 0;
   int ret = 0;
-  u16 joy;
+  short joy;
 
   while (quit == 0)
   {
@@ -431,7 +442,8 @@ int DoMenu (char items[][22], int maxitems)
       redraw = 0;
     }
 
-    joy = PAD_ButtonsDown(0);
+//    joy = PAD_ButtonsDown(0);
+    joy = getMenuButtons();
 
     if (joy & PAD_BUTTON_UP)
     {
@@ -476,7 +488,8 @@ int ChooseMemCard (void)
   char titles[5][25] = { {"save.bin not found\0"}, {"choose a save location\0"}, {"\0"}, {"A - SD Gecko   \0"}, {"B - Memory Card\0"} };
   int i;
   int quit = 0;
-
+  short joy;
+  
    DrawScreen ();
 
    fgcolour = COLOR_WHITE;
@@ -488,17 +501,20 @@ int ChooseMemCard (void)
 
    while (!quit)
    {
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
+      joy = getMenuButtons();
+      if (joy & PAD_BUTTON_A)
         SaveDevice = 1;
         quit = 1;
 
-      if (PAD_ButtonsHeld (0) & PAD_BUTTON_B)
+      if (joy & PAD_BUTTON_B)
         SaveDevice = 0;
         quit = 1;
    }
 
   return 1;
 }
+
+
 /****************************************************************************
 * Options menu
 ****************************************************************************/
@@ -576,7 +592,6 @@ int optionmenu()
  * Load menu
  *
  ****************************************************************************/
-
 static u8 load_menu = 0;
 
 int loadmenu ()
@@ -584,19 +599,22 @@ int loadmenu ()
   int prevmenu = menu;
   int ret,count;
   int quit = 0;
+
 #ifdef HW_RVL
-  count = 4;
-  char item[4][22] = {
+  count = 6;
+  char item[6][22] = {
     {"Load from SD"},
     {"Load from USB"},
+    {"Load from IDE-EXI"},
     {"Load from DVD"},
     {"Stop DVD Motor"},
     {"Return to previous"}
   };
 #else
-  count = 5;
-  char item[5][22] = {
+  count = 6;
+  char item[6][22] = {
     {"Load from SD"},
+    {"Load from IDE-EXI"},
     {"Load from WKF"},
     {"Load from DVD"},
     {"Stop DVD Motor"},
@@ -608,49 +626,133 @@ int loadmenu ()
   
   while (quit == 0)
   {
-    ret = DoMenu (&item[0], count);
-    switch (ret)
-    {
+     use_SD  = 0;
+     use_USB = 0;
+     use_IDE = 0;
+     use_WKF = 0;
+     use_DVD = 0;
+     ret = DoMenu (&item[0], count);
+     switch (ret)
+     {
+        case -1:               // Button B - Exit
+        case 5:
+           quit = 1;
+           break;
+
 #ifdef HW_RVL
-      case 3: break;         // Load from DVD
-      case 4: break;         // Stop DVD
-      case -1:               // Button B - Exit
-      case 5:
-        quit = 1;
-        break;
+        case 1:                // Load from USB
+           use_USB = 1;
+           InfoScreen((char *) "Mounting media");
+           SD_SetHandler();
+           GEN_mount();
+
+           return 1;// quit = 1;
+           break;
+
+        case 2:                // Load from IDE-EXI
 #else
-      case 1:                // Load from WKF
-        load_menu = menu;
-        use_SD = 0;
-        use_DVD = 0;
-        use_WKF = 1;
-        return 1;// quit = 1;
+        case 2:                // Load from WKF
+           use_WKF = 1;
+           InfoScreen((char *) "Mounting media");
+           SD_SetHandler();
+           GEN_mount();
+           if (have_ROM == 1) return 1;// quit = 1;
+           break;
+
+        case 1:                // Load from IDE-EXI
+#endif
+           use_IDE = 1;
+           InfoScreen((char *) "Mounting media");
+           SD_SetHandler();
+           GEN_mount();
+           return 1;// quit = 1;
+           break;
+
+        case 3:                // Load from DVD
+           use_DVD = 1;
+           InfoScreen((char *) "Mounting media");
+           DVD_SetHandler();
+           GEN_mount();  
+           return 1;// quit = 1;
+           break;
+
+        case 4:                // Stop DVD
+           InfoScreen((char *) "Stopping DVD drive...");
+           dvd_motor_off();
+           break;
+
+        default:               // Load from FAT device
+           use_SD  = 1;
+           InfoScreen((char *) "Mounting media");
+           SD_SetHandler();
+           GEN_mount();
+           if (have_ROM == 1) return 1;
+//           quit = 1;
         break;
-      case 2:                // Load from DVD
+
+/*
+#ifdef HW_RVL
+      case 1:                // Load from USB
         load_menu = menu;
-        use_SD = 0;
-        use_DVD = 1;
+        use_SD  = 0;
+        use_USB = 1;
+        use_IDE = 0;
         use_WKF = 0;
+        use_DVD = 0;
         return 1;// quit = 1;
         break;
-      case 3:                // Stop DVD
+
+      case 2:                // Load from IDE-EXI
+#else
+      case 2:                // Load from WKF
+        load_menu = menu;
+        use_SD  = 0;
+        use_USB = 0;
+        use_IDE = 0;
+        use_WKF = 1;
+        use_DVD = 0;
+        return 1;// quit = 1;
+        break;
+
+      case 1:                // Load from IDE-EXI
+#endif
+        load_menu = menu;
+        use_SD  = 0;
+        use_USB = 0;
+        use_IDE = 1;
+        use_WKF = 0;
+        use_DVD = 0;
+        return 1;// quit = 1;
+        break;
+
+      case 3:                // Load from DVD
+        load_menu = menu;
+        use_SD  = 0;
+        use_USB = 0;
+        use_IDE = 0;
+        use_WKF = 0;
+        use_DVD = 1;
+        return 1;// quit = 1;
+        break;
+
+      case 4:                // Stop DVD
         InfoScreen((char *) "Stopping DVD drive...");
         dvd_motor_off();
         menu = load_menu;
         break;
-      case -1:               // Button B - Exit
-      case 4:
-        quit = 1;
-        break;
-#endif
-      /*** Load from FAT device ***/
-      default:
+
+
+
+      default:               // Load from FAT device
         load_menu = menu;
-        use_SD = 1;
-        use_DVD = 0;
+        use_SD  = 1;
+        use_USB = 0;
+        use_IDE = 0;
         use_WKF = 0;
+        use_DVD = 0;
         return 1;// quit = 1;
         break;
+*/
     }
   }
 
@@ -706,8 +808,8 @@ int load_mainmenu()
     {
       case -1:
       case  0:
-	ret = 0;
-	quit = 1;
+        ret = 0;
+        quit = 1;
         break;
 
       case 1:
@@ -755,13 +857,15 @@ int load_mainmenu()
   // Stop the DVD from causing clicks while playing 
 //  uselessinquiry ();
 #endif
+
+  // find memorycard or choose type: SD or MEMCARD
   while (neogeo_get_memorycard() == 0) {
      neogeo_set_memorycard();
      if (neogeo_get_memorycard() == 0)  
-//       ActionScreen((char *) "Please insert save device");
      ChooseMemCard(); 
   }
-
+  //  Allocate memory card buffer
+  memset(neogeo_memorycard, 0, 8192);
 
   return ret;
 }
