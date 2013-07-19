@@ -1,6 +1,45 @@
 NeoCD Redux
 
-03/13/2013: ( Unofficial Version 0.1.52A.1 NGC release by megalomaniac)
+07/18/2013: ( Unofficial Version 0.1.52A.2 release by megalomaniac)
+-----------
+- Minor Audio fix to improve MP3 playback (experimental)
+- New menu added to select save.bin location 
+   . Default search location ( SDGECKO:/neocd/save.bin )
+   . if file not found then try again, choose save location to SD GECKO or MEMCARD
+   . avoid endless loop message "Please insert save device" 
+   ... unless save device does not exist, or /neocd dir does not exist, then thats your problem
+- PAL video mode now defaults to 60Hz 480i/480p
+
+[WII]
+- First version (of this code) with Native Wii support (not to be confused with NeoCD-Wii)
+   . Native Wii dol (no need to boot into GC mode)
+   . USB Support added
+   . DVD support confirmed working
+   . Wiimote, Nunchuck, and Classic Controller support added (seems to work)
+   . GC Controller Support for Wii (only when no wiimote detected for Player 1 or Player 2)
+
+[NGC]
+- WKF support added
+   . load roms from FAT formatted SD card in WKF SLOT only
+   . roms location (  WKF:/neocd/roms/  )
+   . WKF Flatmode detection added for users with DVD + WKF.
+   ... If WKF is not in Flatmode message prompt will be displayed to remove WKF SD card
+   . no write support, save files and progress to SD Gecko or MEMCARD only
+
+[NGC/Wii]
+- IDE-EXI support added
+   . load roms from FAT formatted HDD
+   . roms location (  IDE:/neocd/roms/  )
+   . SlotA or SlotB autodetection
+   . write support not yet added, save files and progress to SD Gecko or MEMCARD only
+
+
+Thanks emu_kidid for borrowed swiss WKF & IDE-EXI code
+
+
+
+
+03/13/2013: ( Unofficial Version 0.1.52A.1 release by megalomaniac)
 -----------
 [NGC]
 - Based on NeoCD Redux 0.1.52A.

@@ -37,16 +37,7 @@ static void AudioSwitchBuffers(void)
     AUDIO_InitDMA((u32) soundbuffer[whichab], len[whichab]);
     DCFlushRange(soundbuffer[whichab], len[whichab]);
     AUDIO_StartDMA();
-
-
-//    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
-
-
-//    whichab ^= 1;
- //   len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
- //       mixer_update_audio();
 }
-
 
 /****************************************************************************
  * InitGCAudio
@@ -75,27 +66,7 @@ void update_audio(void)
  
     if (IsPlaying == 0) {
        AUDIO_StopDMA();
-//       AUDIO_StartDMA();
        AudioSwitchBuffers();
     }
 
 }
-
-//void update_audio(void)
-//{
-//    static int len;
-//    mixer_update_audio();
-//    len = mixer_getaudio(soundbuffer[mixbuffer], 3840);
-
-//    s16 *sb = (s16 *)(soundbuffer[mixbuffer]);
-//    DCFlushRange((void *)sb, len);
-//    AUDIO_InitDMA((u32) sb, len);
-//    mixbuffer ^= 1;
-
-//    if (!audioStarted)
-//    {
-//	AUDIO_StopDMA();
-//	AUDIO_StartDMA();
-//	audioStarted = 1;
-//    }
-//}

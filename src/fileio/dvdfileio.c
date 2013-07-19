@@ -259,6 +259,8 @@ DVDmount ( void )
   if (!mount_image ())
   {
 #ifdef HW_RVL
+    DI_Init();
+
     u32 val;
     DI_GetCoverRegister(&val);
     while(val & 0x1)
@@ -273,7 +275,6 @@ DVDmount ( void )
       char msg[50];
       sprintf(msg, "DI Status Error: 0x%08X !\n",DI_GetStatus());
       ActionScreen(msg);
-//      neogeocd_exit();
     }
 #else
     DVD_Init();
@@ -283,7 +284,6 @@ DVDmount ( void )
     if (!mount_image())
     {
 	ActionScreen((char *) "Error reading disc !");
-//      neogeocd_exit();
     }
   }
   
