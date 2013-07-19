@@ -57,7 +57,7 @@ static unsigned char *OutBufferEnd;
 static unsigned int FrameCounter;
 
 /*** mp3 buffers ***/
-#if use_SD
+#if use_SD || use_WKF
 #define MAD_INPUT_BUFFER (0x8000)
 #else
 #define MAD_INPUT_BUFFER (2*MAD_OUTPUT_BUFFER)

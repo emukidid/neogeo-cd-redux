@@ -222,7 +222,8 @@ int main(void)
       // for Digital Component cable for SDTV compatibility.
       if(VIDEO_HaveComponentCable() && !(PAD_ButtonsDown(0) & PAD_TRIGGER_L)) {
         if((strstr(IPLInfo,"PAL")!=NULL)) {
-          vmode = &TVPal576ProgScale;                     //Progressive 576p60hz
+//          vmode = &TVPal576ProgScale;                   //Progressive 576p60hz
+          vmode = &TVEurgb60Hz480Prog;                    //Progressive 60hz
         }
         else {
           vmode = &TVNtsc480Prog;                         //Progressive 480p
@@ -231,7 +232,8 @@ int main(void)
      else {
         //try to use the IPL region
         if(strstr(IPLInfo,"PAL")!=NULL) {
-          vmode = &TVPal576IntDfScale;                    //Interlaced 576i60hz
+//          vmode = &TVPal576IntDfScale;                  //Interlaced 576i60hz
+          vmode = &TVEurgb60Hz480IntDf;                   //Interlaced 60hz
         }
         else if(strstr(IPLInfo,"NTSC")!=NULL) {
           vmode = &TVNtsc480IntDf;                        //Interlaced 480i
@@ -295,18 +297,32 @@ int main(void)
     InfoScreen((char *) "Mounting media");
 
     //  SET DEVICE HANDLER and START DEVICE
-    if (use_SD == 0) DVD_SetHandler();         //  DVD
-    else SD_SetHandler();                      //  SD
+    if (use_SD == 1) SD_SetHandler();           //  SD
+    else if (use_DVD == 1) DVD_SetHandler();    //  DVD
+    else if (use_WKF == 1) WKF_SetHandler();    //  WKF
     GEN_mount();
 
+    
     //  Find BIOS 
-    fp = GEN_fopen("neocd/bios/NeoCD.bin", "rb");
-    if (!fp) {
-       fp = GEN_fopen("bios/NeoCD.bin", "rb");
+    if (use_WKF == 1){
+       fp = GEN_fopen("WKF:/neocd/bios/NeoCD.bin", "rb");
+       if (!fp) {
+          fp = GEN_fopen("WKF:/bios/NeoCD.bin", "rb");
           if (!fp) {
              InfoScreen((char *) "BIOS not found!");
              while (1);
           }
+       }
+    }
+    else {
+       fp = GEN_fopen("neocd/bios/NeoCD.bin", "rb");
+       if (!fp) {
+          fp = GEN_fopen("bios/NeoCD.bin", "rb");
+             if (!fp) {
+                InfoScreen((char *) "BIOS not found!");
+                while (1);
+             }
+       }
     }
 
     GEN_fread((char *)neogeo_rom_memory, 1, ROM_MEM, fp);

@@ -28,8 +28,10 @@ static unsigned char background[1280 * 480] ATTRIBUTE_ALIGN (32);
 static unsigned char bannerunc[banner_WIDTH * banner_HEIGHT * 2] ATTRIBUTE_ALIGN (32);
 static void unpack (void);
 
-unsigned short SaveDevice = 1;
+unsigned short SaveDevice = 1;           // default save location to SD card
 int use_SD;
+int use_DVD;
+int use_WKF;
 int mega = 0;
 
 /****************************************************************************
@@ -373,7 +375,7 @@ static void draw_menu(char items[][22], int maxitems, int selected)//(  int curr
    else j = 225;
 // char inverse[34];
    int n;
-   char msg[] = "version 0.1.52A.1";
+   char msg[] = "version 0.1.52A.2";
    n = strlen (msg);
 
 
@@ -464,6 +466,38 @@ int DoMenu (char items[][22], int maxitems)
 int credits()
 {
     return 0;
+}
+
+/****************************************************************************
+* Save_menu - a friendly way to allow user to select location for save.bin
+****************************************************************************/
+int ChooseMemCard (void)
+{
+  char titles[5][25] = { {"save.bin not found\0"}, {"choose a save location\0"}, {"\0"}, {"A - SD Gecko   \0"}, {"B - Memory Card\0"} };
+  int i;
+  int quit = 0;
+
+   DrawScreen ();
+
+   fgcolour = COLOR_WHITE;
+   bgcolour = BMPANE;
+
+   for (i = 0; i < 5; i++) gprint ((640 - (strlen (titles[i]) * 16)) >> 1, 192 + (i * 32), titles[i], TXT_DOUBLE);
+
+   ShowScreen ();
+
+   while (!quit)
+   {
+      if (PAD_ButtonsHeld (0) & PAD_BUTTON_A)
+        SaveDevice = 1;
+        quit = 1;
+
+      if (PAD_ButtonsHeld (0) & PAD_BUTTON_B)
+        SaveDevice = 0;
+        quit = 1;
+   }
+
+  return 1;
 }
 /****************************************************************************
 * Options menu
@@ -560,9 +594,10 @@ int loadmenu ()
     {"Return to previous"}
   };
 #else
-  count = 4;
-  char item[4][22] = {
+  count = 5;
+  char item[5][22] = {
     {"Load from SD"},
+    {"Load from WKF"},
     {"Load from DVD"},
     {"Stop DVD Motor"},
     {"Return to previous"}
@@ -584,18 +619,27 @@ int loadmenu ()
         quit = 1;
         break;
 #else
-      case 1:                // Load from DVD
+      case 1:                // Load from WKF
         load_menu = menu;
         use_SD = 0;
+        use_DVD = 0;
+        use_WKF = 1;
         return 1;// quit = 1;
         break;
-      case 2:                // Stop DVD
+      case 2:                // Load from DVD
+        load_menu = menu;
+        use_SD = 0;
+        use_DVD = 1;
+        use_WKF = 0;
+        return 1;// quit = 1;
+        break;
+      case 3:                // Stop DVD
         InfoScreen((char *) "Stopping DVD drive...");
         dvd_motor_off();
         menu = load_menu;
         break;
       case -1:               // Button B - Exit
-      case 3:
+      case 4:
         quit = 1;
         break;
 #endif
@@ -603,6 +647,8 @@ int loadmenu ()
       default:
         load_menu = menu;
         use_SD = 1;
+        use_DVD = 0;
+        use_WKF = 0;
         return 1;// quit = 1;
         break;
     }
@@ -712,7 +758,8 @@ int load_mainmenu()
   while (neogeo_get_memorycard() == 0) {
      neogeo_set_memorycard();
      if (neogeo_get_memorycard() == 0)  
-       ActionScreen((char *) "Please insert save device");
+//       ActionScreen((char *) "Please insert save device");
+     ChooseMemCard(); 
   }
 
 
