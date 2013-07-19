@@ -1,145 +1,31 @@
-#---------------------------------------------------------------------------------
-# Clear the implicit built in rules
-#---------------------------------------------------------------------------------
-.SUFFIXES:
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(DEVKITPPC)),)
-$(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
-endif
+.PHONY = all wii gc wii-clean gc-clean wii-run gc-run
 
-include $(DEVKITPPC)/gamecube_rules
+all: wii gc
 
-#---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-#---------------------------------------------------------------------------------
-TARGET		:=	neocd-redux
-BUILD		:=	build
-SOURCES		:=	src/fileio src src/cdaudio src/cdrom src/z80i \
-				src/memory src/pd4990a src/cpu src/input src/video \
-				src/mcard src/sound
+clean: wii-clean gc-clean
 
-INCLUDES	:=	src/z80 src/m68000 $(SOURCES)
+clean-all: clean wii-clean-cpus
 
-#---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
+wii:
+	$(MAKE) -f Makefile.wii
 
-CFLAGS		= -g -O2 -Wall $(MACHDEP) $(INCLUDE) \
-				-fstrict-aliasing -fomit-frame-pointer
-CXXFLAGS	= $(CFLAGS)
-LDFLAGS		= -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
+wii-clean:
+	$(MAKE) -f Makefile.wii clean
 
-#---------------------------------------------------------------------------------
-# any extra libraries we wish to link with the project
-#---------------------------------------------------------------------------------
-LIBS	:=	-lmad -lz -lfat -logc -lm -ldb -L ./../build_cpu -lz80 -lmc68000
+wii-clean-cpus:
+	$(MAKE) -f Makefile.wii cpus-clean
 
-#---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
-#---------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS)
+wii-run:
+	$(MAKE) -f Makefile.wii run
 
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
+gc:
+	$(MAKE) -f Makefile.gc
 
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
+gc-clean:
+	$(MAKE) -f Makefile.gc clean
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+gc-clean-cpus:
+	$(MAKE) -f Makefile.gc cpus-clean
 
-export DEPSDIR	:=	$(CURDIR)/$(BUILD)
-
-#---------------------------------------------------------------------------------
-# automatically build a list of object files for our project
-#---------------------------------------------------------------------------------
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-	export LD	:=	$(CC)
-else
-	export LD	:=	$(CXX)
-endif
-
-export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
-			$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
-			$(sFILES:.s=.o) $(SFILES:.S=.o)
-
-#---------------------------------------------------------------------------------
-# build a list of include paths
-#---------------------------------------------------------------------------------
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-			-I$(CURDIR)/$(BUILD) \
-			-I$(LIBOGC_INC)
-
-#---------------------------------------------------------------------------------
-# build a list of library paths
-#---------------------------------------------------------------------------------
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
-			-L$(LIBOGC_LIB)
-
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
-.PHONY: $(BUILD) clean cpus cpus-clean
-
-#---------------------------------------------------------------------------------
-$(BUILD):
-	@echo ""
-	@echo "*** Compiling NeoCD Redux ****************************************************"
-	@if test -d build_cpu; then echo ""; else [ -d $@ ] || mkdir -p build_cpu; cd src/m68000 && $(MAKE);cd ..; cd ..; cd src/z80 && $(MAKE); fi
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-	@echo "*************************************************************** Yay! \o/ ***"
-
-#---------------------------------------------------------------------------------
-clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
-
-cpus:
-	@[ -d $@ ] || mkdir -p build_cpu
-	@cd src/m68000 && $(MAKE)
-	@cd src/z80 && $(MAKE)
-
-cpus-clean:
-	@rm -fr build_cpu
-
-#---------------------------------------------------------------------------------
-all: cpus $(BUILD)
-
-clean-all: clean cpus-clean
-#---------------------------------------------------------------------------------
-run:	
-	dolphin-emu -e $(OUTPUT).elf
-
-run-dol:	
-	$(DEVKITPRO)/emulators/gcube/gcube $(OUTPUT).dol
-
-#---------------------------------------------------------------------------------
-else
-
-DEPENDS	:=	$(OFILES:.o=.d)
-
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
-$(OUTPUT).dol: $(OUTPUT).elf
-$(OUTPUT).elf: $(OFILES)
-
-#---------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------
+gc-run:
+	$(MAKE) -f Makefile.gc run

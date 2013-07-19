@@ -11,6 +11,8 @@ extern char basedir[1024];
 extern char dirbuffer[0x10000];
 extern char scratchdir[1024];
 
+extern char root_dir[10];
+//extern int have_ROM;
 extern void DirSelector (void);
 
 #endif

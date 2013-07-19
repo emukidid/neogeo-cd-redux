@@ -30,6 +30,7 @@
 GENFILEINFO fileinfo[MAXFILES];
 static GENHANDLER dvdhandler;
 static u8 dvdfixup[BUFFSIZE] ATTRIBUTE_ALIGN (32);
+extern int usleep();
 
 /****************************************************************************
 * DVDFindFree
@@ -272,7 +273,7 @@ DVDmount ( void )
       char msg[50];
       sprintf(msg, "DI Status Error: 0x%08X !\n",DI_GetStatus());
       ActionScreen(msg);
-      neogeocd_exit();
+//      neogeocd_exit();
     }
 #else
     DVD_Init();

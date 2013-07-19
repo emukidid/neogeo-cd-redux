@@ -7,7 +7,6 @@
 /****************************************************************************
 * SD FileIO
 *
-* Uses old 8.3 filenames only
 ****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +30,13 @@ static char *direntries[MAXDIRENTRIES];
 
 char msg[128];
 
+#ifndef HW_RVL
+extern const DISC_INTERFACE* WKF_slot;
+#endif
+extern const DISC_INTERFACE* IDEA_slot;
+extern const DISC_INTERFACE* IDEB_slot;
+
+int have_ROM;
 /****************************************************************************
 * SDFindFree
 ****************************************************************************/
@@ -251,29 +257,49 @@ static int SDgetdir( char *thisdir )
 /****************************************************************************
 * SDmount
 ****************************************************************************/
-static void SDmount( void )
+static void SDmount()
 {
   memset (basedir, 0, 1024);
   memset (scratchdir, 0, 1024);
   memset (dirbuffer, 0, 0x10000);
-  
-  strcpy(basedir,"/neocd/roms/");         //  search this DIR first
 
+  memset (root_dir, 0, 10);// = "";
+  
+  // Define DIR search location by Device type
+  if (use_IDE) {
+     if ( IDEA_slot->startup() && fatMountSimple("IDEA", IDEA_slot) ) sprintf(root_dir,"IDEA:"); 
+     else if ( IDEB_slot->startup() && fatMountSimple("IDEB", IDEB_slot) ) sprintf(root_dir,"IDEB:"); 
+     else { ActionScreen ("IDE-EXI not initialized"); return; }
+  }
+#ifdef HW_RVL
+  else if (use_SD)  sprintf(root_dir,"sd:");               //  search this DIR first
+  else if (use_USB) sprintf(root_dir,"usb:");
+#else
+  else if (use_WKF) {
+     if ( WKF_slot->startup() && fatMountSimple("WKF", WKF_slot) )  sprintf(root_dir,"WKF:");
+     else { ActionScreen ("WKF not initialized"); return; }
+  }
+#endif
+
+   
+  // Test if DIR exists, else default to root DIR by Device
+  sprintf(basedir,"%s/neocd/roms/",root_dir);
   DIR *dir = opendir(basedir);
-  if (!dir)   strcpy(basedir,"/");        // else default to root DIR
+  if (!dir) sprintf(basedir,"%s/",root_dir);
   else closedir(dir);  
   
-//  strcpy(basedir,"/");
  
   if ( !SDgetdir(basedir) )
     return;
-
+  
   DirSelector();
-  bannerscreen();
+  
+  // Do not show the banner if there is no title selected
+  if (have_ROM == 1) bannerscreen();        
 }
 
 void
-SD_SetHandler (void)
+SD_SetHandler ()
 {
   /* Clear */
   memset(&sdhandler, 0, sizeof(GENHANDLER));

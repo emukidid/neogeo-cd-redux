@@ -12,7 +12,7 @@
  * Nintendo Gamecube Audio Interface 
  */
 
-u8 soundbuffer[2][3840] ATTRIBUTE_ALIGN(32);
+u8 soundbuffer[2][8192] ATTRIBUTE_ALIGN(32);
 u32 mixbuffer;
 u32 audioStarted;
 static int whichab = 0;
@@ -28,20 +28,20 @@ static int IsPlaying = 0;
  ****************************************************************************/
 static void AudioSwitchBuffers(void)
 {
-    static int len[2] = { 3200, 3200 };
-
-//    AUDIO_StopDMA();
-//    memset(soundbuffer, 0, 3200);
-//    mixer_init();   
+    static int len[2] = { 8192, 8192 };
+   
     whichab ^= 1;
-    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
-//    memset(soundbuffer[whichab], 0, len[whichab]);
-
+    len[whichab] = mixer_getaudio(soundbuffer[whichab], 8192);
+    
     IsPlaying = 1;
     AUDIO_InitDMA((u32) soundbuffer[whichab], len[whichab]);
     DCFlushRange(soundbuffer[whichab], len[whichab]);
     AUDIO_StartDMA();
-	
+
+
+//    len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
+
+
 //    whichab ^= 1;
  //   len[whichab] = mixer_getaudio(soundbuffer[whichab], 3200);
  //       mixer_update_audio();
@@ -55,10 +55,11 @@ static void AudioSwitchBuffers(void)
  ****************************************************************************/
 void InitGCAudio(void)
 {
-    AUDIO_Init(NULL);
+    AUDIO_Init(NULL);   
     AUDIO_SetDSPSampleRate(AI_SAMPLERATE_48KHZ);
     AUDIO_RegisterDMACallback(AudioSwitchBuffers);
-    memset(soundbuffer, 0, 3200);
+    memset(soundbuffer, 0, 8192);
+
     mixer_init();
 }
 
@@ -69,11 +70,15 @@ void InitGCAudio(void)
  *****************************************************************************/
 void update_audio(void)
 {
+
     mixer_update_audio();
  
     if (IsPlaying == 0) {
-	AudioSwitchBuffers();
+       AUDIO_StopDMA();
+//       AUDIO_StartDMA();
+       AudioSwitchBuffers();
     }
+
 }
 
 //void update_audio(void)
