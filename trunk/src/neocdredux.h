@@ -55,6 +55,7 @@ typedef unsigned int Uint32;
 #include "dirsel.h"
 #include "dvdfileio.h"
 #include "sdfileio.h"
+#include "wkf.h"
 
 /*** Functions ***/
 void neogeo_swab(const void *src1, const void *src2, int isize);
@@ -80,7 +81,9 @@ extern unsigned char *neogeo_spr_memory;
 extern unsigned char *neogeo_pcm_memory;
 extern unsigned char neogeo_memorycard[8192];
 extern unsigned short SaveDevice;
+extern int use_WKF;
 extern int use_SD;
+extern int use_DVD;
 
 extern char neogeo_game_vectors[0x100];
 extern char neogeo_region;

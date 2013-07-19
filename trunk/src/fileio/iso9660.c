@@ -79,6 +79,17 @@ SetDriveCapacity( void )
 
   while( dvd[7] & 1 );
 
+   InfoScreen((char *) " ");  
+
+// WKF dinfo.reldate is detected as 537330195
+   if ((dinfo.reldate == 537330195) && (__wkfSpiReadId() != 0 && __wkfSpiReadId() != 0xFFFFFFFF) && (wkfIsInserted(0) == true) ){
+     ActionScreen ((char *) "Remove WKF SDcard to enable Flatmode");
+     __wkfReset();
+     SetDriveCapacity();
+  }
+
+
+
   switch( dinfo.reldate )
     {
       /* Known GC Drives */
@@ -86,6 +97,7 @@ SetDriveCapacity( void )
     case 0x20010608:	/* Model 06 */
     case 0x20020823:	/* Model 08 */
     case 0x20010831:	/* Panasonic */
+//     DVD_Reset(DVD_RESETHARD);
       DVDMaxCapacity = GCMAXCAPACITY;
       break;
 
