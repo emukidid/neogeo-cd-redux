@@ -296,7 +296,7 @@ int main(void)
 
     //  SET DEVICE HANDLER and START DEVICE
     if (use_SD == 0) DVD_SetHandler();         //  DVD
-    else SD_SetHandler();                      // SD
+    else SD_SetHandler();                      //  SD
     GEN_mount();
 
     //  Find BIOS 

@@ -369,11 +369,11 @@ static void draw_menu(char items[][22], int maxitems, int selected)//(  int curr
    int i;
    int j;
 // int j = 158;
-   if (mega == 1)  j = 158; 
+   if (mega == 1)  j = 162; 
    else j = 225;
 // char inverse[34];
    int n;
-   char msg[] = "version 0.1 unofficial";
+   char msg[] = "version 0.1.52A.1";
    n = strlen (msg);
 
 
@@ -400,11 +400,11 @@ static void draw_menu(char items[][22], int maxitems, int selected)//(  int curr
       j += 32;
    }
    
-   
-   setfgcolour (COLOR_WHITE);
-   setbgcolour (INVTEXT);//COLOR_BLACK);
-   gprint ((640 - (n * 16)) >> 1, 432, msg, TXT_DOUBLE);
-   
+   if (mega == 0) {
+      setfgcolour (COLOR_WHITE);
+      setbgcolour (BMPANE);//COLOR_BLACK);
+      gprint ((640 - (n * 16)) >> 1, 162/*432*/, msg, TXT_DOUBLE);
+   }
    
    ShowScreen();
 }
@@ -526,7 +526,7 @@ int optionmenu()
           opts[menu-2] += 0.1f;
           if ( opts[menu-2] > 2.0f ) opts[menu-2] = 1.0f;
           strcpy(buf, items[menu]);
-          buf[17]=0;
+          buf[18]=0;
           sprintf(items[menu],"%s%1.1f", buf, opts[menu-2]);
          break;
     }

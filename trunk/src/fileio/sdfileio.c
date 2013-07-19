@@ -270,9 +270,15 @@ static void SDmount( void )
   memset (basedir, 0, 1024);
   memset (scratchdir, 0, 1024);
   memset (dirbuffer, 0, 0x10000);
+  
+  strcpy(basedir,"/neocd/roms/");         //  search this DIR first
 
-  strcpy(basedir,"/");
-	
+  DIR *dir = opendir(basedir);
+  if (!dir)   strcpy(basedir,"/");        // else default to root DIR
+  else closedir(dir);  
+  
+//  strcpy(basedir,"/");
+ 
   if ( !SDgetdir(basedir) )
     return;
 
@@ -303,6 +309,3 @@ SD_SetHandler (void)
   LWP_MutexInit(&sdmutex, FALSE);
 
 }
-
-
-
