@@ -98,9 +98,10 @@ export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
 #---------------------------------------------------------------------------------
 $(BUILD):
-	@[ -d $@ ] || mkdir -p $@
 	@echo ""
 	@echo "*** Compiling NeoCD Redux ****************************************************"
+	@if test -d build_cpu; then echo ""; else [ -d $@ ] || mkdir -p build_cpu; cd src/m68000 && $(MAKE);cd ..; cd ..; cd src/z80 && $(MAKE); fi
+	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 	@echo "*************************************************************** Yay! \o/ ***"
 
@@ -117,6 +118,10 @@ cpus:
 cpus-clean:
 	@rm -fr build_cpu
 
+#---------------------------------------------------------------------------------
+all: cpus $(BUILD)
+
+clean-all: clean cpus-clean
 #---------------------------------------------------------------------------------
 run:	
 	dolphin-emu -e $(OUTPUT).elf

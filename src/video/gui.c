@@ -406,6 +406,7 @@ static void draw_menu(char items[][22], int maxitems, int selected)//(  int curr
       gprint ((640 - (n * 16)) >> 1, 162/*432*/, msg, TXT_DOUBLE);
    }
    
+   
    ShowScreen();
 }
 
