@@ -183,9 +183,6 @@ DirSelector (void)
      // Go to Previous Directory
      if (joy & PAD_BUTTON_B)
      {
- //      if (strcmp (basedir, root_dir) == 0)  ActionScreen ("return to menu");
-       
-       
         if (strcmp (basedir, "/"))
         {
            strcpy (scratchdir, basedir);

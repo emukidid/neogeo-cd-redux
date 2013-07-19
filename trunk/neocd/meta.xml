@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+  <name>NEO-CD REDUX</name>
+  <coder>Softdev</coder>
+  <version>0.1.52A.2</version>
+  <release_date>07/18/2013</release_date>
+  <short_description>Neo Geo CD Emulator</short_description>
+  <long_description>Emulator updated by megalomaniac.
+
+NEO-CD REDUX, a NeoGeo CD/Z emulator for the Nintendo GameCube console. It owes it's existence to several other emulators, but was initially based on Foster's NeoCD/SDL 0.3.1 and NJ's NeoCDZ emulators. 
+Please read changelog.txt for list of changes.
+Visit http://www.gc-forever.com for any questions and updates.</long_description>
+  <no_ios_reload/>
+</app>
+

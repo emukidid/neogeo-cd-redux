@@ -41,10 +41,6 @@ int use_WKF = 0;
 int use_DVD = 0;
 
 int mega = 0;
-//#ifdef HW_RVL
-//int P1_controller = 1;      // 0 = GC, 1 = Wii
-//int P2_controller = 1;
-//#endif
 
 /****************************************************************************
 * plotpixel
@@ -384,11 +380,9 @@ int menu = 0;
 static void draw_menu(char items[][22], int maxitems, int selected)//(  int currsel )
 {
    int i;
-   int j;// = 225;
-// int j = 158;
+   int j;
    if (mega == 1)  j = 162; 
    else j = 225;
-// char inverse[34];
    int n;
    char msg[] = "version 0.1.52A.2";
    n = strlen (msg);
@@ -402,11 +396,7 @@ static void draw_menu(char items[][22], int maxitems, int selected)//(  int curr
       {
          setfgcolour (BMPANE);
          setbgcolour (INVTEXT);
-//	memset(inverse, 32, 34);
-//	inverse[32] = 0;
-//	memcpy(inverse + 6, items[i], strlen(items[i]));
-//	gprint( 64, j, inverse, TXT_DOUBLE);
-        gprint( ( 640 - ( strlen(items[i]) << 4 )) >> 1, j, items[i], TXT_DOUBLE);
+         gprint( ( 640 - ( strlen(items[i]) << 4 )) >> 1, j, items[i], TXT_DOUBLE);
       }
       else
       {
@@ -446,7 +436,7 @@ int DoMenu (char items[][22], int maxitems)
       redraw = 0;
     }
 
-//    joy = PAD_ButtonsDown(0);
+
     joy = getMenuButtons();
 
     if (joy & PAD_BUTTON_UP)
@@ -463,13 +453,13 @@ int DoMenu (char items[][22], int maxitems)
       if (menu == maxitems) menu = 0;
     }
 
-    if (joy & PAD_BUTTON_A)// || (joy & PAD_BUTTON_RIGHT))
+    if (joy & PAD_BUTTON_A)
     { 
       quit = 1;
       ret = menu;
     }
 
-    if (joy & PAD_BUTTON_B)// || (joy & PAD_BUTTON_LEFT))
+    if (joy & PAD_BUTTON_B)
     {
       quit = 1;
       ret = -1;
@@ -517,151 +507,6 @@ int ChooseMemCard (void)
 
   return 1;
 }
-
-
-/****************************************************************************
-* Audio menu
-****************************************************************************/
-/*
-int audiomenu()
-{
-  int prevmenu = menu;
-  int quit = 0;
-  int ret;
-  char buf[22];
-  int count = 6;
-  static char items[6][22] = {
-    { "SFX Volume:       1.0" },
-    { "MP3 Volume:       1.0" }, 
-    { "Low Gain:         1.0" }, 
-    { "Mid Gain:         1.0" },
-    { "High Gain:        1.0" },
-    { "Return to previous" }
-    
-  };
-  static float opts[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-
-  menu = 0;
-
-  while (quit == 0)
-  {
-    sprintf(items[0],"SFX Volume       %1.1f",opts[0]);
-    sprintf(items[1],"MP3 Volume       %1.1f",opts[1]);
-    sprintf(items[2],"Low Gain         %1.1f",opts[2]);
-    sprintf(items[3],"Mid Gain         %1.1f",opts[3]);
-    sprintf(items[4],"High Gain        %1.1f",opts[4]);
-    
-    ret = DoMenu (&items[0], count);
-    switch (ret)
-    {
-      case -1:
-      case 5:
-         quit = 1;
-         break;
-      default:
-          opts[menu-2] += 0.1f;
-          if ( opts[menu-2] > 2.0f ) opts[menu-2] = 1.0f;
-          strcpy(buf, items[menu]);
-          buf[18]=0;
-          sprintf(items[menu],"%s%1.1f", buf, opts[menu-2]);
-         break;
-    }
-  }
-  mixer_set( opts[0], opts[1], opts[2], opts[3], opts[4]);
-  menu = prevmenu;
-  return 0;
-}
-
-*/
-/****************************************************************************
-* Options menu
-****************************************************************************/
-/*
-int optionmenu()
-{
-  int prevmenu = menu;
-  int quit = 0;
-  int ret;
-//  char buf[22];
-#ifdef HW_RVL
-  int count = 6;
-  static char items[6][22] = 
-#else
-  int count = 4;
-  static char items[4][22] = 
-#endif
-  {
-    { "Region:           USA" },
-    { "Save Device:  SD Card" },
-#ifdef HW_RVL
-    { "Controller 1:     Wii" },
-    { "Controller 2:     Wii" },
-#endif
-    { "Audio  FX & Equalizer" },
-    { "Return to previous" }
-  };
-
-  menu = 0;
-
-  while (quit == 0)
-  {
-    if (neogeo_region == 0) sprintf(items[0], "Region:         JAPAN");
-      else if (neogeo_region == 1) sprintf(items[0], "Region:           USA");
-      else sprintf(items[0], "Region:        EUROPE");
-
-    if (SaveDevice == 1) sprintf(items[1], "Save Device:  SD Card");
-    else sprintf(items[1], "Save Device: MEM Card");
-
-#ifdef HW_RVL
-    if (P1_controller == 1) sprintf(items[2], "Controller 1:     Wii");
-    else sprintf(items[2], "Controller 1:      GC");
-    
-    if (P2_controller == 1) sprintf(items[3], "Controller 2:     Wii");
-    else sprintf(items[3], "Controller 2:      GC");
-#endif
-
-    ret = DoMenu (&items[0], count);
-    switch (ret)
-    {
-      case 0:     // BIOS Region
-         neogeo_region++;
-         if ( neogeo_region > 2 ) neogeo_region = 0;
-        break;
-
-      case 1:     // Save Device location
-        SaveDevice ^= 1;
-        break;
-
-#ifdef HW_RVL
-      case 2:     // Player 1 controller type
-        P1_controller ^= 1;
-        break;
-
-      case 3:     // Player 2 controller type
-        P2_controller ^= 1;
-        break;
-
-      case 4:     // Audio Menu
-#else
-      case 2:
-#endif
-        audiomenu();
-        break;
-
-      case -1:     // Return to Previous
-#ifdef HW_RVL
-      case 5:
-#else
-      case 3:
-#endif
-         quit = 1;
-         break;
-    }
-  }
-  menu = prevmenu;
-  return 0;
-}
-*/
 
 /****************************************************************************
 * Options menu
@@ -848,8 +693,6 @@ int loadmenu ()
  * Main Menu
  *
  ****************************************************************************/
-//extern int frameticker;
-//int gamepaused = 0;
 
 int load_mainmenu()
 {

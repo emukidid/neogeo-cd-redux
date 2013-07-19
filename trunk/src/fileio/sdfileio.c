@@ -209,8 +209,6 @@ void SortListing( int max )
 static int SDgetdir( char *thisdir )
 {
   DIR *dirs = NULL;
-//  char filename[MAXPATHLEN];
- // struct stat filestat;
   static int count = 0;
   int i;
   unsigned int *p;
@@ -263,7 +261,7 @@ static void SDmount()
   memset (scratchdir, 0, 1024);
   memset (dirbuffer, 0, 0x10000);
 
-  memset (root_dir, 0, 10);// = "";
+  memset (root_dir, 0, 10);
   
   // Define DIR search location by Device type
   if (use_IDE) {

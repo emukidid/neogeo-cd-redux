@@ -147,18 +147,12 @@ void wkfInit() {
 	
 	// SD card detect
 	if ((wkfGetSlotStatus() & 0x000F0000)==0x00070000) {
-//		DrawFrameStart();
+		// no SD card
+		wkfInitialized = 0;
                 if (use_WKF == 1) ActionScreen("No WKF SD Card");
-//		WriteFont(25+(0.60*116)+10,215, "No WKF SD Card");
-//		DrawFrameFinish();
-//		sleep(3);
-//		// no SD card
-//		wkfInitialized = 0;
 	}
 	else {
 		// If there's an SD, reset DVD (why?)
-//                WaitPrompt("WKF SD Card Found");
-//		WriteFont(25+(0.60*116)+10,215, "WKF SD Card Found");
 		__wkfReset();
 		udelay(300000);
 					
@@ -173,17 +167,12 @@ void wkfInit() {
 		wkfRead(&wkfBuffer[0], 0x200, 0);
 		if((wkfBuffer[0x1FF] != 0xAA)) {
 			// No FAT!
-//			DrawFrameStart();
-                        if (use_WKF == 1) ActionScreen("No FAT Formatted WKF SD card found!!");
-			//WriteFont(25+(0.60*116)+10,240, "No FAT Formatted SD found in Wiikey Fusion!");
-			//DrawFrameFinish();
-			//sleep(5);
 			wkfInitialized = 0;
+                        if (use_WKF == 1) ActionScreen("No FAT Formatted WKF SD card found!!");
 		} 
 		else {
 			wkfInitialized = 1;
                         if (use_WKF == 1) InfoScreen("Searching WKF SD Card");
-			//WriteFont(25+(0.60*116)+10,240, "Searching WKF SD Card");
 		}
 	}
 }

@@ -231,7 +231,6 @@ int main(void)
       // for Digital Component cable for SDTV compatibility.
       if(VIDEO_HaveComponentCable() && !(PAD_ButtonsDown(0) & PAD_TRIGGER_L)) {
         if((strstr(IPLInfo,"PAL")!=NULL)) {
-//          vmode = &TVPal576ProgScale;                   //Progressive 576p60hz
           vmode = &TVEurgb60Hz480Prog;                    //Progressive 60hz
         }
         else {
@@ -241,7 +240,6 @@ int main(void)
      else {
         //try to use the IPL region
         if(strstr(IPLInfo,"PAL")!=NULL) {
-//          vmode = &TVPal576IntDfScale;                  //Interlaced 576i60hz
           vmode = &TVEurgb60Hz480IntDf;                   //Interlaced 60hz
         }
         else if(strstr(IPLInfo,"NTSC")!=NULL) {
@@ -307,25 +305,27 @@ int main(void)
     initialise_memmap();
 
     //  Go to main menu
+    // Select Device
+    // Select title
+    //SET DEVICE HANDLER and START DEVICE
     while (!have_ROM) load_mainmenu();
-    //  SET DEVICE HANDLER and START DEVICE
-
-//    InfoScreen((char *) "Mounting media");
-//    if (use_DVD == 1) DVD_SetHandler();
-//    else SD_SetHandler();
-//    GEN_mount();  
-
 
     //  Find BIOS 
     char bios_dir[25];
     char bios_dir1[25];
 
 #ifdef HW_RVL
-       sprintf(bios_dir, "sd:/neocd/bios/NeoCD.bin");    // always use internal slot for bios - wii
+    if (use_DVD == 1) {
+       sprintf(bios_dir, "neocd/bios/NeoCD.bin");        // search DVD root for bios - Wii
+       sprintf(bios_dir1,"bios/NeoCD.bin");
+    }
+    else {
+       sprintf(bios_dir, "sd:/neocd/bios/NeoCD.bin");    // use internal SD slot for all FAT devices - Wii
        sprintf(bios_dir1,"sd:/bios/NeoCD.bin");
+    }
 #else
-       sprintf(bios_dir, "neocd/bios/NeoCD.bin");
-       sprintf(bios_dir1,"bios/NeoCD.bin");              // always use SD Gecko slot for bios - GC
+       sprintf(bios_dir, "neocd/bios/NeoCD.bin");        // always use SD Gecko slot for bios - GC
+       sprintf(bios_dir1,"bios/NeoCD.bin");
 #endif
 
     fp = GEN_fopen(bios_dir, "rb");
@@ -443,7 +443,6 @@ static void neogeo_run(void)
 	    cdda_loop_check();
 
 		/*** Decode MP3 ***/
-//	    mp3_decoder(3200, mp3buffer);
             mp3_decoder(3200, (char*)mp3buffer);
 		/*** Update Audio ***/
 	    update_audio();
@@ -501,7 +500,6 @@ void neogeo_reset(void)
 ***************************************************************************/
 static void neogeo_cdda_check(void)
 {
-//#if 0
     int Offset;
 
     Offset = m68k_read_memory_32(0x10F6EA);
@@ -512,7 +510,6 @@ static void neogeo_cdda_check(void)
     Offset >>= 1;
 
     neogeo_do_cdda(subcpu_memspace[Offset], subcpu_memspace[Offset + 1]);
-//#endif
 }
 
 /****************************************************************************
@@ -520,10 +517,8 @@ static void neogeo_cdda_check(void)
 ***************************************************************************/
 void neogeo_cdda_control(void)
 {
-//#if 0
     neogeo_do_cdda((m68k_get_reg(NULL, M68K_REG_D0) >> 8) & 0xFF,
 		   m68k_get_reg(NULL, M68K_REG_D0) & 0xFF);
-//#endif
 }
 
 /****************************************************************************
@@ -531,7 +526,6 @@ void neogeo_cdda_control(void)
 ***************************************************************************/
 static void neogeo_do_cdda(int command, int track_number_bcd)
 {
-//#if 0
     int track_number;
     int offset;
     int loop;
@@ -594,7 +588,6 @@ static void neogeo_do_cdda(int command, int track_number_bcd)
 		   cdda_resume();
 		   break;
     }
-//#endif
 }
 
 /****************************************************************************

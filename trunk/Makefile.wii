@@ -15,8 +15,8 @@ include $(DEVKITPPC)/wii_rules
 # SOURCES is a list of directories containing source code
 # INCLUDES is a list of directories containing extra header files
 #---------------------------------------------------------------------------------
-#TARGET		:=	neocd-redux_wii
-TARGET		:=	boot
+TARGET		:=	neocd-redux_wii
+#TARGET		:=	boot
 BUILD		:=	build_wii
 SOURCES		:=	src/fileio src src/cdaudio src/cdrom src/z80i \
 				src/memory src/pd4990a src/cpu src/input src/video \
