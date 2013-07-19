@@ -1,0 +1,39 @@
+NeoCD Redux
+
+03/13/2013: ( Unofficial Version 0.1.52A.1 NGC release by megalomaniac)
+-----------
+[NGC]
+- Based on NeoCD Redux 0.1.52A.
+- Thanks to infact and his efforts and work posted on github. 
+- Various code changes to supress "most" compiler warnings
+- Minor Audio Rewrite:
+   . "Glitchy" Audio introduced due to latest devkitppc/libogc incompatibility
+   . removed original audio threading code to fix the issue
+- Added Automatic TV mode detection (based on GC IPL version)
+- Added Progressive Video display / Component cable auto detect. Supported video types:
+   . 480i/480p
+   . 576i/576p << need feedback to confirm if any issues with PAL video mode (slowdowns or audio)
+- Added Safemode Menu display:
+   . Force Menu to display 480i video with Digital Component cable (CRT SDTV compatibility)
+   . Hold L TRIGGER during bootup to activate
+- SDHC support
+- Menu enhancements: New Menu (almost complete rewrite of old code)
+- Graphical improvements  < thanks infact & NEOCD - WII
+- Now supports both SD and DVD loading
+   . Fixed MP3 playback < thanks NEOCD - WII
+   . also added/modified ability to correctly play mp3 audio from SD and DVD
+   ... old code only had compatibility for one or the other (hence, reason for previous multiple version distributions)
+   . BIOS must be located on chosen media
+- BIOS search locations:
+   . /neocd/bios/NeoCD.bin
+   . /bios/NeoCD.bin
+   . allowed original bios location to keep backwards compatibility with my old DVDs
+- Title FileBrowser now defaults to display contents from /neocd/roms/  << (yes i know it uses CDs not ROMs)
+   . example: /neocd/roms/metalslug
+   . broswer will default to / for DVD or if /neocd/roms is not located on SD card
+- MEM Card no longer required for "Save File":
+   . Save File will now default to SD card /neocd/save.bin << thanks infact
+   . option added in menu to use MEM CARD
+- Minor controller changes: 
+   . L Trigger will return to main menu
+   . R Trigger will save file
