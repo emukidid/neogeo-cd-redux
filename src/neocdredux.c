@@ -306,11 +306,11 @@ int main(void)
     //  Initialise Mame memory map etc
     initialise_memmap();
 
-    load_mainmenu();
+    //  Go to main menu
+    while (!have_ROM) load_mainmenu();
     //  SET DEVICE HANDLER and START DEVICE
 
 //    InfoScreen((char *) "Mounting media");
-
 //    if (use_DVD == 1) DVD_SetHandler();
 //    else SD_SetHandler();
 //    GEN_mount();  
@@ -731,17 +731,12 @@ void neogeo_new_game(void)
 {
 	/*** Prevent scratching noises in menu ***/
     AUDIO_StopDMA();
-
     if (!load_mainmenu() /* !load_options() */)
     {
 	AUDIO_StartDMA();
 	return;
     }
 
-    if (use_DVD == 1) DVD_SetHandler();
-    else SD_SetHandler();
-
-    GEN_mount();
     GEN_fcloseall();
 
 
@@ -833,3 +828,4 @@ void neogeo_trace(void)
 {
     ActionScreen((char *) "Tracepoint Reached");
 }
+

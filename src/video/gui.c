@@ -41,6 +41,10 @@ int use_WKF = 0;
 int use_DVD = 0;
 
 int mega = 0;
+//#ifdef HW_RVL
+//int P1_controller = 1;      // 0 = GC, 1 = Wii
+//int P2_controller = 1;
+//#endif
 
 /****************************************************************************
 * plotpixel
@@ -380,7 +384,7 @@ int menu = 0;
 static void draw_menu(char items[][22], int maxitems, int selected)//(  int currsel )
 {
    int i;
-   int j;
+   int j;// = 225;
 // int j = 158;
    if (mega == 1)  j = 162; 
    else j = 225;
@@ -516,8 +520,153 @@ int ChooseMemCard (void)
 
 
 /****************************************************************************
+* Audio menu
+****************************************************************************/
+/*
+int audiomenu()
+{
+  int prevmenu = menu;
+  int quit = 0;
+  int ret;
+  char buf[22];
+  int count = 6;
+  static char items[6][22] = {
+    { "SFX Volume:       1.0" },
+    { "MP3 Volume:       1.0" }, 
+    { "Low Gain:         1.0" }, 
+    { "Mid Gain:         1.0" },
+    { "High Gain:        1.0" },
+    { "Return to previous" }
+    
+  };
+  static float opts[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+
+  menu = 0;
+
+  while (quit == 0)
+  {
+    sprintf(items[0],"SFX Volume       %1.1f",opts[0]);
+    sprintf(items[1],"MP3 Volume       %1.1f",opts[1]);
+    sprintf(items[2],"Low Gain         %1.1f",opts[2]);
+    sprintf(items[3],"Mid Gain         %1.1f",opts[3]);
+    sprintf(items[4],"High Gain        %1.1f",opts[4]);
+    
+    ret = DoMenu (&items[0], count);
+    switch (ret)
+    {
+      case -1:
+      case 5:
+         quit = 1;
+         break;
+      default:
+          opts[menu-2] += 0.1f;
+          if ( opts[menu-2] > 2.0f ) opts[menu-2] = 1.0f;
+          strcpy(buf, items[menu]);
+          buf[18]=0;
+          sprintf(items[menu],"%s%1.1f", buf, opts[menu-2]);
+         break;
+    }
+  }
+  mixer_set( opts[0], opts[1], opts[2], opts[3], opts[4]);
+  menu = prevmenu;
+  return 0;
+}
+
+*/
+/****************************************************************************
 * Options menu
 ****************************************************************************/
+/*
+int optionmenu()
+{
+  int prevmenu = menu;
+  int quit = 0;
+  int ret;
+//  char buf[22];
+#ifdef HW_RVL
+  int count = 6;
+  static char items[6][22] = 
+#else
+  int count = 4;
+  static char items[4][22] = 
+#endif
+  {
+    { "Region:           USA" },
+    { "Save Device:  SD Card" },
+#ifdef HW_RVL
+    { "Controller 1:     Wii" },
+    { "Controller 2:     Wii" },
+#endif
+    { "Audio  FX & Equalizer" },
+    { "Return to previous" }
+  };
+
+  menu = 0;
+
+  while (quit == 0)
+  {
+    if (neogeo_region == 0) sprintf(items[0], "Region:         JAPAN");
+      else if (neogeo_region == 1) sprintf(items[0], "Region:           USA");
+      else sprintf(items[0], "Region:        EUROPE");
+
+    if (SaveDevice == 1) sprintf(items[1], "Save Device:  SD Card");
+    else sprintf(items[1], "Save Device: MEM Card");
+
+#ifdef HW_RVL
+    if (P1_controller == 1) sprintf(items[2], "Controller 1:     Wii");
+    else sprintf(items[2], "Controller 1:      GC");
+    
+    if (P2_controller == 1) sprintf(items[3], "Controller 2:     Wii");
+    else sprintf(items[3], "Controller 2:      GC");
+#endif
+
+    ret = DoMenu (&items[0], count);
+    switch (ret)
+    {
+      case 0:     // BIOS Region
+         neogeo_region++;
+         if ( neogeo_region > 2 ) neogeo_region = 0;
+        break;
+
+      case 1:     // Save Device location
+        SaveDevice ^= 1;
+        break;
+
+#ifdef HW_RVL
+      case 2:     // Player 1 controller type
+        P1_controller ^= 1;
+        break;
+
+      case 3:     // Player 2 controller type
+        P2_controller ^= 1;
+        break;
+
+      case 4:     // Audio Menu
+#else
+      case 2:
+#endif
+        audiomenu();
+        break;
+
+      case -1:     // Return to Previous
+#ifdef HW_RVL
+      case 5:
+#else
+      case 3:
+#endif
+         quit = 1;
+         break;
+    }
+  }
+  menu = prevmenu;
+  return 0;
+}
+*/
+
+/****************************************************************************
+* Options menu
+****************************************************************************/
+
 int optionmenu()
 {
   int prevmenu = menu;
@@ -645,8 +794,7 @@ int loadmenu ()
            InfoScreen((char *) "Mounting media");
            SD_SetHandler();
            GEN_mount();
-
-           return 1;// quit = 1;
+           if (have_ROM == 1) return 1;// quit = 1;
            break;
 
         case 2:                // Load from IDE-EXI
@@ -665,7 +813,7 @@ int loadmenu ()
            InfoScreen((char *) "Mounting media");
            SD_SetHandler();
            GEN_mount();
-           return 1;// quit = 1;
+           if (have_ROM == 1) return 1;// quit = 1;
            break;
 
         case 3:                // Load from DVD
@@ -673,7 +821,7 @@ int loadmenu ()
            InfoScreen((char *) "Mounting media");
            DVD_SetHandler();
            GEN_mount();  
-           return 1;// quit = 1;
+           if (have_ROM == 1) return 1;// quit = 1;
            break;
 
         case 4:                // Stop DVD
@@ -687,72 +835,8 @@ int loadmenu ()
            SD_SetHandler();
            GEN_mount();
            if (have_ROM == 1) return 1;
-//           quit = 1;
         break;
 
-/*
-#ifdef HW_RVL
-      case 1:                // Load from USB
-        load_menu = menu;
-        use_SD  = 0;
-        use_USB = 1;
-        use_IDE = 0;
-        use_WKF = 0;
-        use_DVD = 0;
-        return 1;// quit = 1;
-        break;
-
-      case 2:                // Load from IDE-EXI
-#else
-      case 2:                // Load from WKF
-        load_menu = menu;
-        use_SD  = 0;
-        use_USB = 0;
-        use_IDE = 0;
-        use_WKF = 1;
-        use_DVD = 0;
-        return 1;// quit = 1;
-        break;
-
-      case 1:                // Load from IDE-EXI
-#endif
-        load_menu = menu;
-        use_SD  = 0;
-        use_USB = 0;
-        use_IDE = 1;
-        use_WKF = 0;
-        use_DVD = 0;
-        return 1;// quit = 1;
-        break;
-
-      case 3:                // Load from DVD
-        load_menu = menu;
-        use_SD  = 0;
-        use_USB = 0;
-        use_IDE = 0;
-        use_WKF = 0;
-        use_DVD = 1;
-        return 1;// quit = 1;
-        break;
-
-      case 4:                // Stop DVD
-        InfoScreen((char *) "Stopping DVD drive...");
-        dvd_motor_off();
-        menu = load_menu;
-        break;
-
-
-
-      default:               // Load from FAT device
-        load_menu = menu;
-        use_SD  = 1;
-        use_USB = 0;
-        use_IDE = 0;
-        use_WKF = 0;
-        use_DVD = 0;
-        return 1;// quit = 1;
-        break;
-*/
     }
   }
 
@@ -766,7 +850,7 @@ int loadmenu ()
  ****************************************************************************/
 //extern int frameticker;
 //int gamepaused = 0;
-  
+
 int load_mainmenu()
 {
   s8 ret;
@@ -825,12 +909,13 @@ int load_mainmenu()
       case 3:
         optionmenu();
         break;
-      case 4: 
+      case 4:
         VIDEO_ClearFrameBuffer(vmode, xfb[whichfb], COLOR_BLACK);
         VIDEO_Flush();
         VIDEO_WaitVSync();
 #ifdef HW_RVL
         DI_Close();
+        exit(0);
         break;
 
       case 5:
