@@ -19,6 +19,7 @@
 
 char basedir[1024];
 char scratchdir[1024];
+char megadir[1024];
 char dirbuffer[0x10000] ATTRIBUTE_ALIGN (32);
 
 char root_dir[10];
@@ -85,6 +86,7 @@ DirSelector (void)
   short joy;
   int quit = 0;
   have_ROM = 0;
+  GENFILE fp;
 
   maxfile = p[0];
 
@@ -176,6 +178,15 @@ DirSelector (void)
         }
         else
            GEN_getdir (basedir);
+
+        // if IPL.TXT found, automount directory
+        sprintf(megadir,"%s/IPL.TXT",basedir);
+        fp = GEN_fopen(megadir, "rb");
+        if (fp)
+        {
+           have_ROM = 1;
+           quit = 1;
+        }
 
         redraw = 1;
      }
